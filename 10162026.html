@@ -1,0 +1,1090 @@
+<title>Financial Threat Brief 16 Oct</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+/* ── Design tokens ───────────────────────────────────────────────────────────
+   Layout: a single 74ch briefing column on paper, with full-bleed section
+   bands and a data strip that runs wider than the prose. Institutional
+   bulletin register: serif headings, sans body, mono for indicators.
+   Same system as the 14–15 October brief so the series reads as one document.
+   ──────────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #F6F6F3;
+  --surface:   #FFFFFF;
+  --surface-2: #EFEFEA;
+  --ink:       #16191D;
+  --ink-2:     #3B4149;
+  --muted:     #666D77;
+  --rule:      #E2E2DB;
+  --accent:    #0E5D68;
+  --accent-sf: #E1EEF0;
+  --crit:      #A81E1E;
+  --crit-sf:   #F7E6E4;
+  --elev:      #8F5400;
+  --elev-sf:   #F8EEDD;
+  --watch:     #3C6729;
+  --watch-sf:  #E9F0E3;
+  --unk:       #656C75;
+  --unk-sf:    #ECEDEE;
+
+  --f-display: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --f-body:    "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --col: 74ch;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #0F1214;
+    --surface:   #161A1D;
+    --surface-2: #1D2226;
+    --ink:       #ECEEEF;
+    --ink-2:     #C0C6CB;
+    --muted:     #8B939A;
+    --rule:      #292F34;
+    --accent:    #4FB0BC;
+    --accent-sf: #123035;
+    --crit:      #E8736E;
+    --crit-sf:   #35201F;
+    --elev:      #D9A441;
+    --elev-sf:   #322816;
+    --watch:     #87B56B;
+    --watch-sf:  #1E2A18;
+    --unk:       #8B939A;
+    --unk-sf:    #22272B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:        #0F1214;
+  --surface:   #161A1D;
+  --surface-2: #1D2226;
+  --ink:       #ECEEEF;
+  --ink-2:     #C0C6CB;
+  --muted:     #8B939A;
+  --rule:      #292F34;
+  --accent:    #4FB0BC;
+  --accent-sf: #123035;
+  --crit:      #E8736E;
+  --crit-sf:   #35201F;
+  --elev:      #D9A441;
+  --elev-sf:   #322816;
+  --watch:     #87B56B;
+  --watch-sf:  #1E2A18;
+  --unk:       #8B939A;
+  --unk-sf:    #22272B;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.rel a { font-weight: 500; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.62;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--col); margin: 0 auto; }
+.wide { max-width: 94ch; margin: 0 auto; }
+
+/* ── Masthead ───────────────────────────────────────────────────────────── */
+.masthead { border-bottom: 1px solid var(--rule); padding-block: 2.75rem 1.5rem; }
+.eyebrow {
+  font-family: var(--f-mono); font-size: 0.70rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 0.9rem;
+}
+h1 {
+  font-family: var(--f-display); font-weight: 600;
+  font-size: clamp(1.75rem, 4.6vw, 2.6rem); line-height: 1.14;
+  letter-spacing: -0.015em; text-wrap: balance; margin: 0 0 0.85rem;
+}
+.standfirst { color: var(--ink-2); font-size: 1.02rem; max-width: 64ch; margin: 0 0 1.6rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.5rem 0.65rem; align-items: center; }
+.chip {
+  font-family: var(--f-mono); font-size: 0.71rem; letter-spacing: 0.05em;
+  padding: 0.28rem 0.6rem; border-radius: 3px; border: 1px solid var(--rule);
+  background: var(--surface); color: var(--ink-2); white-space: nowrap;
+}
+.chip.tlp { border-color: var(--elev); background: var(--elev-sf); color: var(--elev); font-weight: 500; }
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+section { padding-block: 2.4rem; border-bottom: 1px solid var(--rule); }
+section:last-of-type { border-bottom: 0; }
+h2 {
+  font-family: var(--f-display); font-weight: 600; font-size: 1.32rem;
+  letter-spacing: -0.01em; text-wrap: balance; margin: 0 0 0.35rem;
+}
+h2 .idx {
+  font-family: var(--f-mono); font-size: 0.72rem; font-weight: 400;
+  color: var(--accent); letter-spacing: 0.1em; display: block; margin-bottom: 0.45rem;
+}
+.secnote { color: var(--muted); font-size: 0.88rem; max-width: 68ch; margin: 0 0 1.5rem; }
+h3 {
+  font-family: var(--f-body); font-weight: 600; font-size: 0.98rem;
+  margin: 0 0 0.5rem; letter-spacing: -0.005em;
+}
+p { margin: 0 0 1rem; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 1.06rem; color: var(--ink-2); }
+
+/* ── Stat strip ─────────────────────────────────────────────────────────── */
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+  border-radius: 4px; overflow: hidden; margin: 0 0 0.5rem;
+}
+.stat { background: var(--surface); padding: 1.05rem 1.1rem 1.15rem; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.stat .n {
+  font-family: var(--f-display); font-weight: 600; font-size: 1.72rem;
+  line-height: 1.05; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.stat .lbl { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+.stat.crit .n { color: var(--crit); }
+.stat.elev .n { color: var(--elev); }
+.stat.watch .n { color: var(--watch); }
+.stat.accent .n { color: var(--accent); }
+
+/* ── Findings ───────────────────────────────────────────────────────────── */
+.findings { display: flex; flex-direction: column; gap: 1.15rem; }
+.finding {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 4px; padding: 1.15rem 1.2rem 1.2rem;
+  border-left-width: 3px; border-left-style: solid; border-left-color: var(--rule);
+  min-width: 0;
+}
+.finding.hot   { border-left-color: var(--crit); }
+.finding.warm  { border-left-color: var(--elev); }
+.finding.info  { border-left-color: var(--watch); }
+.finding.open  { border-left-color: var(--unk); }
+.fhead { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; margin-bottom: 0.6rem; }
+.where {
+  font-family: var(--f-mono); font-size: 0.68rem; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--muted);
+}
+.finding p { font-size: 0.95rem; }
+.finding p:last-child { margin-bottom: 0; }
+
+.pill {
+  font-family: var(--f-mono); font-size: 0.64rem; letter-spacing: 0.09em;
+  text-transform: uppercase; padding: 0.2rem 0.48rem; border-radius: 3px;
+  border: 1px solid currentColor; white-space: nowrap; font-weight: 500;
+}
+.p-crit  { color: var(--crit);  background: var(--crit-sf); }
+.p-elev  { color: var(--elev);  background: var(--elev-sf); }
+.p-watch { color: var(--watch); background: var(--watch-sf); }
+.p-unk   { color: var(--unk);   background: var(--unk-sf); }
+
+.rel {
+  font-size: 0.84rem; color: var(--muted); margin-top: 0.7rem;
+  padding-top: 0.65rem; border-top: 1px solid var(--rule);
+}
+.rel b { color: var(--ink-2); font-weight: 600; }
+
+/* ── Key/value + evidence lists ─────────────────────────────────────────── */
+.kv { display: flex; flex-direction: column; gap: 0.3rem; margin: 0.7rem 0 0; }
+.kv .row { display: flex; flex-wrap: wrap; gap: 0.15rem 0.55rem; font-size: 0.88rem; min-width: 0; }
+.kv .k {
+  font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); min-width: 8.5rem; padding-top: 0.1rem;
+}
+.kv .v { color: var(--ink-2); flex: 1 1 14rem; min-width: 0; }
+
+code, .ioc {
+  font-family: var(--f-mono); font-size: 0.85em; background: var(--surface-2);
+  padding: 0.1em 0.34em; border-radius: 3px; word-break: break-all;
+}
+
+/* ── Scroll containers ──────────────────────────────────────────────────── */
+.scroll { overflow-x: auto; margin: 0.9rem 0 0; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 34rem; }
+th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-family: var(--f-mono); font-size: 0.68rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted); font-weight: 500;
+  background: var(--surface-2); white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td.mono, th.mono { font-family: var(--f-mono); font-size: 0.79rem; white-space: nowrap; }
+td.y { color: var(--crit); font-weight: 500; }
+td.n { color: var(--watch); }
+caption { caption-side: bottom; text-align: left; font-size: 0.8rem; color: var(--muted); padding: 0.6rem 0.75rem; }
+
+/* ── Notes ──────────────────────────────────────────────────────────────── */
+.note {
+  border: 1px solid var(--rule); border-left-width: 3px; border-left-style: solid;
+  border-left-color: var(--accent); background: var(--accent-sf);
+  border-radius: 4px; padding: 0.85rem 1rem; font-size: 0.9rem; margin: 1.1rem 0 0;
+}
+.note.warn { border-left-color: var(--crit); background: var(--crit-sf); }
+.note b { font-weight: 600; }
+.note p:last-child { margin-bottom: 0; }
+
+/* ── Themes / recs ──────────────────────────────────────────────────────── */
+.themes { display: flex; flex-direction: column; gap: 0.9rem; }
+.theme { display: flex; gap: 0.9rem; align-items: flex-start; }
+.theme .num {
+  font-family: var(--f-mono); font-size: 0.72rem; color: var(--accent);
+  padding-top: 0.22rem; min-width: 1.6rem; flex: none; letter-spacing: 0.06em;
+}
+.theme .body { min-width: 0; }
+.theme h3 { margin-bottom: 0.25rem; }
+.theme p { font-size: 0.92rem; color: var(--ink-2); margin: 0; }
+
+.recs { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1.2rem; }
+.horizon {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem;
+  margin-bottom: 0.55rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule);
+}
+.horizon .lbl { font-family: var(--f-display); font-weight: 600; font-size: 1.02rem; }
+.horizon .sub { font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+ul.acts { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.5rem; }
+ul.acts li { font-size: 0.92rem; color: var(--ink-2); }
+ul.acts li b { color: var(--ink); font-weight: 600; }
+
+/* ── Sources retrieved ──────────────────────────────────────────────────── */
+.srcs { list-style: none; padding: 0; margin: 0; font-size: 0.86rem; }
+.srcs li { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); color: var(--ink-2); }
+.srcs li:last-child { border-bottom: 0; }
+.srcs .rel {
+  display: inline-block; font-family: var(--f-mono); font-size: 0.66rem;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 0.1rem 0.36rem;
+  margin-right: 0.5rem; vertical-align: 1px;
+}
+.srcs a { color: var(--accent); font-weight: 500; text-decoration: underline;
+  text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.srcs a:hover { text-decoration-thickness: 2px; }
+.srcs em { color: var(--muted); font-style: normal; font-size: 0.94em; }
+.srcgrp {
+  font-family: var(--f-mono); font-size: 0.7rem; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--accent);
+  margin: 1.5rem 0 0.35rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--rule);
+}
+.srcgrp:first-of-type { margin-top: 0.6rem; }
+
+footer { padding-block: 2rem 3.5rem; color: var(--muted); font-size: 0.84rem; }
+footer p { margin: 0 0 0.6rem; }
+
+@media (max-width: 420px) {
+  .kv .k { min-width: 100%; }
+  .stat .n { font-size: 1.5rem; }
+}
+</style>
+
+<div class="wrap masthead">
+  <p class="eyebrow">Strategic threat intelligence · 24-hour window</p>
+  <h1>Financial-sector threats, 15–16 October 2026</h1>
+  <p class="standfirst">
+    Four supervisors converged within roughly seventy-two hours on AI-enabled attack as a
+    financial-stability risk. No new intrusion technique appeared in the window. The novel
+    malware is a mobile banker, and the movement that matters is a Korean shift from stealing
+    data to attempting to originate loans with it.
+  </p>
+  <div class="meta">
+    <span class="chip tlp">TLP:AMBER</span>
+    <span class="chip">Window 15 Oct 00:00 → 16 Oct 2026</span>
+    <span class="chip">APAC · EMEA · AMER</span>
+    <span class="chip">Passive collection only</span>
+  </div>
+</div>
+
+<div class="wide">
+  <section>
+    <div class="stats">
+      <div class="stat elev">
+        <span class="n">3</span>
+        <span class="lbl">IOC addresses published by JPCERT/CC on 15 Oct, independently enriched here</span>
+      </div>
+      <div class="stat crit">
+        <span class="n">~100</span>
+        <span class="lbl">Loan applications attempted under employee names at one Korean savings bank — blocked</span>
+      </div>
+      <div class="stat accent">
+        <span class="n">15 days</span>
+        <span class="lbl">Until the ECB action-plan deadline of 31 Oct for significant institutions</span>
+      </div>
+      <div class="stat watch">
+        <span class="n">&gt;70%</span>
+        <span class="lbl">Of 2026 exploited-vulnerability cases where providers had almost no patch window (IMF)</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="wrap">
+  <section>
+    <h2><span class="idx">01</span>Executive summary</h2>
+    <p class="lede">
+      The most consequential development in this window is regulatory rather than technical.
+      The Bank of England, the Reserve Bank of New Zealand with the FMA, and the IMF all
+      moved within about seventy-two hours to treat AI-enabled attack as a systemic risk to
+      the financial system rather than an operational nuisance for individual firms. That
+      reframing carries a concrete expectation: demonstrable recovery capability, not just
+      prevention. The ECB's action-plan deadline of 31 October sits fifteen days out.
+    </p>
+    <p>
+      On the incident side, no new intrusion technique was observed. South Korea's campaign
+      continued with the detail that changes its character — an attempt to originate loans
+      using employee identities, stopped at the credit-inquiry stage. Japan's national CERT
+      published three infrastructure addresses and a claim that AI assisted the reconnaissance.
+      The Americas contributed a processor-liability dispute and two credit-union incidents,
+      one of them still only a leak-site claim.
+    </p>
+    <p>
+      The recurring weakness across every region is the same one: controls that trust the
+      infrastructure calling them. Korean inquiry portals, Indian payout APIs and Japanese
+      mobile-app back ends were each reached from outside and each granted authority they
+      should not have. That is a business-logic problem, and it does not show up in a
+      vulnerability count.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="idx">02</span>New in the window</h2>
+    <p class="secnote">
+      Items whose underlying event or first publication falls between 15 and 16 October 2026.
+      Everything older, and everything already covered in the 14–15 October brief, is listed
+      with its exclusion reason in section 04.
+    </p>
+
+    <div class="findings">
+
+      <article class="finding warm">
+        <div class="fhead">
+          <span class="where">APAC · South Korea</span>
+          <span class="pill p-elev">Escalation</span>
+          <span class="pill p-unk">Low–medium confidence</span>
+        </div>
+        <h3>From data theft to attempted loan origination</h3>
+        <p>
+          DB Savings Bank blocked an attempt to take out loans using roughly 100 employee
+          accounts. The applications were stopped at the credit-inquiry stage and no funds
+          were disbursed. The report attributes the source to a Chinese IP address.
+        </p>
+        <p>
+          The significance is the change in objective. The same access that leaked customer
+          records in this campaign was here pointed at the bank's own lending process, using
+          staff identities rather than customer ones.
+        </p>
+        <div class="kv">
+          <div class="row"><span class="k">Outcome</span><span class="v">Attempted, blocked, no loss reported. Not a successful fraud.</span></div>
+          <div class="row"><span class="k">Attribution</span><span class="v">An address geolocated to China is a property of the address, not an attribution to a Chinese actor. No actor is named in the reporting.</span></div>
+        </div>
+        <p class="rel"><b>Source:</b> <a href="https://biz.chosun.com/en/en-finance/2026/10/16/S5QJEUD2GJECJH3HJTBIVW2K4M/">ChosunBiz</a> and <a href="https://www.chosun.com/english/market-money-en/2026/10/16/TD5VAAA545G3PH7YGYTTHWVUUI/">Chosun</a> exclusive, 15–16 Oct 2026 (English, Korean and Japanese editions of one outlet). <b>Single-sourced</b> — no independent confirmation, no number of accounts or disbursement detail visible. Treat as an indicator of direction, not a confirmed loss event.</p>
+      </article>
+
+      <article class="finding warm">
+        <div class="fhead">
+          <span class="where">APAC · South Korea</span>
+          <span class="pill p-elev">Confirmed disclosure</span>
+          <span class="pill p-watch">Medium confidence</span>
+        </div>
+        <h3>OK Savings Bank confirms 250 customers affected</h3>
+        <p>
+          The bank reported an intrusion to the FSS on 13 October, confirmed the scope on
+          15 October and began notifying customers the same day. The exposed fields are
+          names, dates of birth, phone numbers, account numbers, annual income and loan
+          amounts. Access to the affected system ran for roughly five and a half hours on
+          11–12 October.
+        </p>
+        <p>
+          This sits inside the wider Korean wave: sixteen financial firms and approximately
+          100,000 records, with the crypto exchange Gopax among the named entities. The FSC's
+          inspection of 555 firms found 130 with shortcomings, chiefly unapplied patches,
+          ageing systems and thin out-of-hours monitoring.
+        </p>
+        <div class="kv">
+          <div class="row"><span class="k">Regulatory follow-on</span><span class="v">FSC to tighten CEO and board security accountability, move large firms to twice-yearly vulnerability checks, and stand up AI-based joint threat monitoring.</span></div>
+          <div class="row"><span class="k">Record-count tension</span><span class="v">The FSC figure of ~100,000 records and Zscaler's figure of ~67,000 individuals describe the same campaign at different scope. The regulator's number is the one to use; the two are not additive.</span></div>
+        </div>
+        <p class="rel"><b>Sources:</b> <a href="https://www.digitaltoday.co.kr/en/view/114887/ok-savings-bank-confirms-personal-data-leak-of-250-customers-including-account-numbers-and-annual-income">DigitalToday</a>, <a href="https://en.sedaily.com/finance/2026/10/15/ok-savings-bank-confirms-data-breach-affecting-250-customers">Seoul Economic Daily</a>, <a href="https://news.sbs.co.kr/english/article.do?news_id=N1008797951">SBS</a>, <a href="https://www.koreatimes.co.kr/business/banking-finance/20261014/ai-driven-cyberattacks-hit-16-financial-firms-expose-100000-records">Korea Times</a>, <a href="https://www.bleepingcomputer.com/news/security/south-korea-probes-bank-breaches-amid-suspected-ai-powered-attacks/">BleepingComputer</a> (14–16 Oct). Regulator statements via <a href="https://www.fsc.go.kr/eng/pr010101/87928">FSC press releases</a>. <b>Independent of the Chosun exclusive above.</b></p>
+      </article>
+
+      <article class="finding warm">
+        <div class="fhead">
+          <span class="where">APAC · Japan</span>
+          <span class="pill p-elev">New IOCs</span>
+          <span class="pill p-watch">Medium confidence</span>
+        </div>
+        <h3>JPCERT/CC publishes three addresses and an AI-usage claim</h3>
+        <p>
+          Japan's national CERT published an examination of attack servers behind the
+          country's breach wave, reporting that attackers used AI to scan for known
+          vulnerabilities and to attack services through their APIs. Three addresses were
+          released as indicators. They are enriched independently below.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="mono">Address</th>
+                <th>Holder / jurisdiction</th>
+                <th>Exposed services</th>
+                <th>Independent tags</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">210.149.87.120</td>
+                <td>T-CLOUD-2, JP<span style="color:var(--muted)"> (JPNIC)</span></td>
+                <td class="mono">22, 53, 80, 389, 443, 465, 587, 8080, 8443, 8899</td>
+                <td><span class="pill p-crit">c2</span> <span class="pill p-unk">open-dir</span></td>
+              </tr>
+              <tr>
+                <td class="mono">118.26.36.16</td>
+                <td>UCloud Information Technology, HK</td>
+                <td class="mono">22, 53, 80, 443, 631, 6379, 8000, 8080, 8083, 8888, 9000, 9001, 9443, 18081, 27017</td>
+                <td><span class="pill p-unk">open-dir</span> <span class="pill p-unk">database</span> <span class="pill p-unk">eol</span></td>
+              </tr>
+              <tr>
+                <td class="mono">69.10.51.162</td>
+                <td>InterServer, US<span style="color:var(--muted)"> · PTR vps3665925.trouble-free.net</span></td>
+                <td class="mono">22, 53, 389, 465, 587, 4443, 8081, 8083, 8899, 9999</td>
+                <td><span class="pill p-crit">c2</span> <span class="pill p-unk">open-dir</span></td>
+              </tr>
+            </tbody>
+            <caption>
+              Passive enrichment run 16 Oct 2026: Shodan InternetDB, GreyNoise community,
+              RDAP and DoH PTR. Tags are the sensor's, not the author's. Three different
+              providers in three jurisdictions.
+            </caption>
+          </table>
+        </div>
+        <div class="kv">
+          <div class="row"><span class="k">Corroboration</span><span class="v">Two of three carry Shodan's own <code>c2</code> tag, assigned independently of JPCERT. That is genuine corroboration of role for those two.</span></div>
+          <div class="row"><span class="k">Shared config</span><span class="v">Two of the three expose an unusual stack — 53, 389, 465, 587, 8083, 8899. <b>Flagged, not used as a selector:</b> the mail and LDAP ports are a common server profile, and I did not validate this combination against a population for precision or recall. It joins nothing.</span></div>
+          <div class="row"><span class="k">Scanning behaviour</span><span class="v">GreyNoise returned "not observed scanning the internet" for all three — a tested negative, not an unknown. Expected for receiving infrastructure: a C2 does not need to scan.</span></div>
+          <div class="row"><span class="k">Blocklist check</span><span class="v">Not listed in Spamhaus DROP, CINS or Feodo. Tested negative with a passing positive control. <b>Weak evidence:</b> DROP and CINS are network-scope lists unsuited to catching a single VPS, and the Feodo feed is frozen, so a miss there is not a negative.</span></div>
+        </div>
+        <div class="note warn">
+          <p>
+            <b>Report the tension.</b> JPCERT/CC states AI was used but does not show how that
+            was established; the artifacts it published would look the same if the work had
+            been done manually. Japanese coverage split on this — Sankei and NICT framed AI
+            involvement as a possibility, not a finding. Record the claim and the gap.
+          </p>
+        </div>
+        <p class="rel"><b>Sources:</b> <a href="https://www.jpcert.or.jp/wr/2026/wr261015.html">JPCERT/CC weekly report</a> 15 Oct; <a href="https://japancyberwatch.com/articles/jpcert-cc-attack-servers-ai-apk-analysis-2026">Japan Cyber Watch</a> analysis; <a href="https://www.sankei.com/article/20261015-KITZWXG2MRNVXJULWG7LPLWIEQ/">Sankei</a>, NCC, TBS. Enrichment is this analyst's own, via no-key sources.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">EMEA · United Kingdom</span>
+          <span class="pill p-watch">Supervisory</span>
+          <span class="pill p-watch">High confidence</span>
+        </div>
+        <h3>Bank of England names AI a systemic risk and asks for bare-metal recovery</h3>
+        <p>
+          Deputy Governor Sarah Breeden, speaking at the Institute of International Finance
+          annual meeting in Bangkok on 15 October, said AI advances now pose a
+          &ldquo;systemic risk&rdquo; to the global financial system. Her framing was
+          unusually direct about failure: <em>&ldquo;It's not enough now to assume that the
+          cyber attackers won't get through.&rdquo;</em> She described the worst case as
+          waking to find a systemically important bank paralysed, and said cyber is
+          &ldquo;always the thing that I say keeps me up at night.&rdquo;
+        </p>
+        <p>
+          The operative ask is <b>bare-metal recovery</b> — recovery paths standing entirely
+          independent of a bank's main technology estate, planned end to end across the
+          financial system rather than institution by institution. The Bank is separately
+          surveying banks on quantum readiness for encryption risk.
+        </p>
+        <p class="rel"><b>Source:</b> Reuters, via <a href="https://www.pymnts.com/cybersecurity/2026/boe-warns-banks-against-ai-cybersecurity-risks/">PYMNTS</a>, 15 Oct 2026. Direct quotation. <b>High confidence</b> — an on-the-record statement by a named official at a public venue.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">APAC · New Zealand</span>
+          <span class="pill p-watch">Supervisory</span>
+          <span class="pill p-watch">High confidence</span>
+        </div>
+        <h3>RBNZ and FMA issue joint expectations on frontier-AI cyber risk</h3>
+        <p>
+          The Reserve Bank of New Zealand and the Financial Markets Authority issued a joint
+          statement on 15 October setting out supervisory expectations for cyber risk arising
+          from frontier AI. Three risks are named: increased cyber risk, governance and
+          oversight difficulty, and third-party and concentration risk.
+        </p>
+        <p>
+          The expectation placed on boards is specific — know where AI is used in the estate,
+          and know who is accountable for it — alongside a reminder to get the security
+          basics right before reaching for AI-driven defence.
+        </p>
+        <p class="rel"><b>Sources:</b> <a href="https://www.fma.govt.nz/news/all-releases/media-releases/rbnz-and-fma-outline-supervisory-expectations-on-cyber-and-ai-risk/">RBNZ/FMA joint release</a>; <a href="https://www.rnz.co.nz/news/business/1952204/financial-regulators-urge-stronger-cyber-security-amid-ai-enabled-cyber-attacks">RNZ</a> (16 Oct). Note the FMA page returned HTTP 403 to automated retrieval, so this rests on the release as reported; the primary document was not read directly.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">Global</span>
+          <span class="pill p-watch">Analytical anchor</span>
+          <span class="pill p-watch">High confidence</span>
+        </div>
+        <h3>IMF: in more than 70% of 2026 cases there was no time to patch</h3>
+        <p>
+          The IMF's October Global Financial Stability Report, <em>Resilience, Risk, and
+          Transformation</em>, finds that in more than 70% of reported cyberattack cases so
+          far in 2026, software providers had almost no time to patch before exploitation —
+          against 2021, when close to 300 days was typical. It also records a roughly 40%
+          shortfall in cybersecurity professionals and flags concentration among a small
+          number of critical technology providers as a common point of failure.
+        </p>
+        <p>
+          Released 13 October, so formally outside this window; included because it is the
+          evidence base the 15 October supervisory statements rest on. The practical reading
+          for a bank is that patch cadence cannot be the primary control when the patch
+          window has collapsed to nothing.
+        </p>
+        <p class="rel"><b>Sources:</b> <a href="https://www.imf.org/en/publications/gfsr/issues/2026/10/13/global-financial-stability-report-october-2026">IMF GFSR October 2026</a> (Chapter 1); <a href="https://www.imf.org/en/blogs/articles/2026/10/12/global-financial-markets-face-rising-risks-from-ai-bond-yields-and-cyberattacks">IMF blog 12 Oct</a>; Reuters, <a href="https://www.computerweekly.com/news/366652153/IMF-warns-of-cyber-threat-to-digitally-connected-financial-markets">Computer Weekly</a>, Morningstar. <b>High confidence</b> — primary institutional publication.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">AMER · United States</span>
+          <span class="pill p-watch">Governance trend</span>
+          <span class="pill p-watch">Medium confidence</span>
+        </div>
+        <h3>Processor concentration becomes a liability dispute</h3>
+        <p>
+          A tenth financial institution — Antwerp Exchange Bank of Ohio — joined litigation
+          against core processor Fiserv, alleging inadequate cybersecurity and specifically
+          weak multifactor authentication. Fiserv's position is that clients choose their own
+          security settings. No breach is alleged in the suits.
+        </p>
+        <p>
+          This is worth leadership attention not as a legal matter but as a governance one:
+          it is the point at which shared-processor risk stops being an abstract concentration
+          statistic and becomes a contested question of who holds the evidence and the duty.
+        </p>
+        <p class="rel"><b>Source:</b> <a href="https://www.americanbanker.com/news/ohio-bank-joins-credit-unions-suing-fiserv-over-security">American Banker</a>, 15 Oct 2026. <b>Medium confidence</b> — trade press, no court filing read directly.</p>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="where">AMER · United States</span>
+          <span class="pill p-unk">Unconfirmed</span>
+        </div>
+        <h3>Qilin lists Telcoe Federal Credit Union</h3>
+        <p>
+          The Qilin ransomware group posted Telcoe Federal Credit Union to its leak site on
+          15 October. On the same day Incransom listed CoopeCaja, a Costa Rican
+          savings cooperative.
+        </p>
+        <div class="note warn">
+          <p>
+            <b>One source wearing several hats.</b> Every outlet carrying this story — the
+            ransomware trackers, the briefing sites, the aggregators — is republishing the
+            same leak-site post. That is one claim, not several, and it is the claimant's own.
+            There is no victim confirmation, no scope, no independent telemetry, and no
+            evidence data was actually taken rather than merely asserted. Treat as a lead.
+          </p>
+        </div>
+        <p class="rel"><b>Sources:</b> <a href="https://www.ransomware.live/id/VGVsY29lIEZlZGVyYWwgQ3JlZGl0IFVuaW9uQHFpbGlu">ransomware.live</a>, <a href="https://pulse.kalir.io/en/brief/ransomware-qilin-publica-a-telcoe-federal-6f70882e">Kalir</a>, <a href="https://threatcluster.io/dark-web/victim/telcoe-federal-credit-union-5ab7fd58a12bc1c0">threatcluster</a>, <a href="https://todayincyber.io/feed/ransomware/article/01a14138-6f5a-77ed-a96f-807656d18d0c">Today In Cyber</a>, <a href="https://www.hookphish.com/blog/ransomware-group-qilin-hits-telcoe-federal-credit-union/">HookPhish</a> — all traceable to the Qilin leak-site listing of 15 Oct.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">AMER · United States</span>
+          <span class="pill p-watch">Disclosure</span>
+          <span class="pill p-watch">Medium confidence</span>
+        </div>
+        <h3>Missouri Central Credit Union breach from a legacy email account</h3>
+        <p>
+          Reported 15 October and filed with Massachusetts regulators on 12 October: a
+          phishing attack on a legacy email account exposed members' Social Security numbers,
+          financial account information and credit and debit card numbers. The account
+          reportedly lacked modern multifactor authentication.
+        </p>
+        <p class="rel"><b>Source:</b> <a href="https://technewsreel.com/cybersecurity/missouri-central-credit-union-breach-exposes-ssns-and-financial-data">TechNewsReel</a>, 15 Oct 2026; state regulator filing. <b>Medium confidence</b> — the underlying breach notification is a regulatory filing, but this window's reporting of it is secondary.</p>
+      </article>
+
+      <article class="finding">
+        <div class="fhead">
+          <span class="where">APAC · India</span>
+          <span class="pill p-unk">Low confidence</span>
+        </div>
+        <h3>GhostBat RAT moves onto UPI PINs</h3>
+        <p>
+          Reporting states a RAT has evolved to steal UPI PINs from around sixty
+          banking, UPI, wallet and fintech applications on Android in India, distributed
+          through smishing that uses fake traffic-fine notices linking to imitation
+          mParivahan and Play pages. Payloads are said to be staged in GitHub repositories
+          to evade scanning, within a wider &ldquo;GhostX&rdquo; ecosystem.
+        </p>
+        <p class="rel"><b>Source:</b> <a href="https://threattimes.com/category/malware/ghostbat-rat-evolves-to-steal-upi-pins-via-fake/">Threat Times</a>, 15 Oct 2026. <b>Low confidence</b> — a single low-tier outlet, no vendor research or sample reviewed, no IOCs published. Recorded for vector awareness only; do not build detections on it.</p>
+      </article>
+
+      <article class="finding info">
+        <div class="fhead">
+          <span class="where">Digital assets</span>
+          <span class="pill p-watch">Confirmed exploit</span>
+          <span class="pill p-watch">High confidence</span>
+        </div>
+        <h3>UNCX vesting contract drained across four chains</h3>
+        <p>
+          An accounting flaw in UNCX Network's Vesting V2 contracts allowed a small leftover
+          vesting position to withdraw tokens other users had deposited. Losses reached
+          roughly $1.49M across Ethereum, BNB Smart Chain, Base and Robinhood Chain, with
+          BNB Chain accounting for about two-thirds. The root cause, identified by ExVul, is
+          that <code>release()</code> reduced the global <code>_totalTokenShares</code>
+          without removing released shares from the calling position's
+          <code>_depositedShares</code>, so a cancel path double-counted the balance.
+        </p>
+        <p>
+          Eleven drain transactions were recorded, with copycat wallets and MEV bots joining
+          once the flaw was public. UNCX froze new vesting positions, raised lock fees, and is
+          coordinating with law enforcement and SEAL 911.
+        </p>
+        <p class="rel"><b>Sources:</b> Blockaid (loss totals), ExVul (root cause), <a href="https://www.cryptotimes.io/2026/10/15/uncx-exploit-escalates-vesting-v2-bug-drains-1-5m-across-4-chains-as-copycats-join-in/">Crypto Times</a> and <a href="https://news.bitcoin.com/security/an-86000-exploit-rocks-a-crypto-pool-built-to-lock-tokens/">Bitcoin.com News</a>, 15 Oct 2026. <b>High confidence</b> on the mechanism — two independent security firms. No funds recovered as of reporting.</p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">03</span>Cross-regional read</h2>
+    <p class="secnote">
+      Five patterns that hold across the regions, each of which a leadership audience can act on
+      without needing the underlying indicators.
+    </p>
+    <div class="themes">
+      <div class="theme">
+        <span class="num">01</span>
+        <div class="body">
+          <h3>Supervisors converged in roughly seventy-two hours</h3>
+          <p>
+            The Bank of England on 15 October, RBNZ and FMA on 15 October, the IMF on 13
+            October, with the ECB's 31 October action-plan deadline behind them. The common
+            move is reclassifying AI-enabled attack from an operational concern to a
+            financial-stability and confidence issue. What follows for a firm is a shift in
+            the evidence supervisors will want: proof of recovery capability, not a
+            vulnerability-remediation percentage.
+          </p>
+        </div>
+      </div>
+      <div class="theme">
+        <span class="num">02</span>
+        <div class="body">
+          <h3>The entry surface is peripheral and API-shaped</h3>
+          <p>
+            Korea: customer inquiry portals and employee mobile back ends. India: payout and
+            disbursement APIs. Japan: mobile applications decompiled to locate the API behind
+            them. Europe: a third-party-managed VPN gateway. In every case the target was a
+            non-core internet-facing service, and in every case the control that failed was
+            authorisation.
+          </p>
+        </div>
+      </div>
+      <div class="theme">
+        <span class="num">03</span>
+        <div class="body">
+          <h3>Access is being converted from data into money</h3>
+          <p>
+            Korea's attempted loan origination under employee identities and India's 317
+            unauthorised transactions moving $1.47M through 34 mule accounts, of which roughly
+            13% was recovered, are the same story at different stages. The controls that would
+            have interrupted both are beneficiary validation, velocity limits and maker-checker
+            approval — enforced independently of whoever is calling the API.
+          </p>
+        </div>
+      </div>
+      <div class="theme">
+        <span class="num">04</span>
+        <div class="body">
+          <h3>Detection, not patching, is the binding constraint</h3>
+          <p>
+            The IMF's finding that more than 70% of this year's exploited-vulnerability cases
+            had no meaningful patch window removes patching as a sufficient primary control.
+            The Bank of England's answer is recovery independence; the ECB's is monitoring and
+            detection depth. Vulnerability counts measure the wrong thing.
+          </p>
+        </div>
+      </div>
+      <div class="theme">
+        <span class="num">05</span>
+        <div class="body">
+          <h3>Concentration risk is becoming a governance question</h3>
+          <p>
+            The Fiserv litigation, the Daiwa breach through vendor Scala Communications, the
+            European bank reached through a third-party gateway, the IMF's concentration
+            finding and the RBNZ/FMA third-party risk point all converge. The open question is
+            no longer whether third parties are a risk but who holds the evidence when one
+            fails.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">04</span>Excluded as not new, with the verification trail</h2>
+    <p class="secnote">
+      The most common failure mode in a 24-hour brief is an aggregator entry dated inside the
+      window that describes an event from months earlier. Each row below was checked against its
+      underlying event date before exclusion.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th class="mono">Event date</th>
+            <th>Reason excluded</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Daiwa Securities — 110,000 clients via vendor</td>
+            <td class="mono">2–3 Oct<br>announced 5 Oct</td>
+            <td>Outside window. Intrusion at Scala Communications, Daiwa's own systems not breached.</td>
+          </tr>
+          <tr>
+            <td>KillSec ransomware takedown, Europol/Eurojust</td>
+            <td class="mono">action 30 Sep<br>announced 1 Oct</td>
+            <td>Outside window. Resurfacing in feeds as though current.</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Japan declared a cyber emergency&rdquo;</td>
+            <td class="mono">—</td>
+            <td class="y">Claim incorrect. Japan did not declare an emergency. Eight agencies issued warnings and requests 7–9 Oct; none created a new legal obligation.</td>
+          </tr>
+          <tr>
+            <td>IDC Frontier / IDCF Cloud ransomware — 495 organisations</td>
+            <td class="mono">7 Oct</td>
+            <td>Outside window. Ongoing consequences, but the incident is not new.</td>
+          </tr>
+          <tr>
+            <td>Hirudo Android banker</td>
+            <td class="mono">14 Oct</td>
+            <td>Already carried in the 14–15 October brief.</td>
+          </tr>
+          <tr>
+            <td>European bank via third-party gateway and WSUS probe (Unit 42)</td>
+            <td class="mono">14 Oct</td>
+            <td>Already carried in the 14–15 October brief.</td>
+          </tr>
+          <tr>
+            <td>Brazil — H2 Financiamento, Incransom, 1.53 TB</td>
+            <td class="mono">14 Oct</td>
+            <td>Already carried in the 14–15 October brief.</td>
+          </tr>
+          <tr>
+            <td>Ivanti Connect Secure CVE-2026-104935</td>
+            <td class="mono">CISA alert 13 Oct</td>
+            <td>Already carried; separate case file holds the worked analysis.</td>
+          </tr>
+          <tr>
+            <td>Casbaneiro with malicious Chromium extension</td>
+            <td class="mono">14 Oct</td>
+            <td>Outside window by one day. LATAM desktop banker activity, unchanged in character.</td>
+          </tr>
+          <tr>
+            <td>Geidea payment gateway, Saudi Arabia — leak claim</td>
+            <td class="mono">detected 13 Oct</td>
+            <td>Outside window, and aggregator-sourced without primary confirmation.</td>
+          </tr>
+          <tr>
+            <td>CERT-In advisory CIAD-2026-0046, payout-API abuse</td>
+            <td class="mono">9 Oct</td>
+            <td>Covered in the 14–15 October brief. Cited here only as context for theme 03.</td>
+          </tr>
+          <tr>
+            <td>T-Systems / SafePay claim</td>
+            <td class="mono">6 Oct</td>
+            <td>Outside window; company stated only a test environment was affected.</td>
+          </tr>
+          <tr>
+            <td>FortiBleed credential campaign (FBI/USSS)</td>
+            <td class="mono">6 Oct</td>
+            <td>Outside window. Financial services is in the intended-audience list, so still worth patching against.</td>
+          </tr>
+          <tr>
+            <td>OFX Group, Australia</td>
+            <td class="mono">breach ~28 Sep<br>disclosed 2 Oct</td>
+            <td>The 15 Oct item is a clarifying update confirming client-platform databases were not accessed — not a new incident.</td>
+          </tr>
+          <tr>
+            <td>ECB letter SSM-2026-0301</td>
+            <td class="mono">letter 7 Jul 2026</td>
+            <td>Not new, but the 31 Oct deadline is now 15 days out and is carried in the recommendations.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">05</span>Recommendations</h2>
+    <div class="recs">
+
+      <div>
+        <div class="horizon">
+          <span class="lbl">Immediate</span>
+          <span class="sub">0–7 days</span>
+        </div>
+        <ul class="acts">
+          <li>
+            <b>Test your disbursement and loan-origination APIs for trust in the caller.</b>
+            The Korean and Indian cases both worked because the control layer accepted calls
+            from infrastructure it treated as trusted. This is a business-logic test — limits,
+            maker-checker and beneficiary validation enforced independently of the calling
+            service — and a vulnerability scan will not surface it.
+          </li>
+          <li>
+            <b>Reconcile your counterparty and vendor register against the Korean list of
+            sixteen affected firms</b> and the two named processor incidents, and check whether
+            any shared service or data flow puts you in the blast radius.
+          </li>
+          <li>
+            <b>Add the three JPCERT addresses to monitoring, not to a permanent blocklist.</b>
+            They are VPS addresses in three different providers and will be reassigned; the
+            durable value is in the behaviour, not the address.
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="horizon">
+          <span class="lbl">Short term</span>
+          <span class="sub">1–4 weeks</span>
+        </div>
+        <ul class="acts">
+          <li>
+            <b>Rehearse out-of-band recovery for the payment path specifically</b> and document
+            the manual fallback — the capability the Bank of England described as bare-metal
+            recovery. If the exercise cannot be run without the primary estate, that is the
+            finding.
+          </li>
+          <li>
+            <b>Inventory internet-facing non-core services</b> — inquiry portals, partner and
+            payout APIs, employee mobile back ends — and require server-side authorisation on
+            each. The Japanese pattern begins with decompiling a published mobile app to find
+            the API behind it.
+          </li>
+          <li>
+            <b>Treat credentials embedded in mobile applications as compromised by design.</b>
+            Assume extraction and move the decision to the server; rotate what is already out
+            there.
+          </li>
+          <li>
+            <b>Confirm the ECB AI-cyber action plan is filed before 31 October</b> if you are a
+            significant institution subject to SSM-2026-0301.
+          </li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="horizon">
+          <span class="lbl">Strategic</span>
+          <span class="sub">1–6 months</span>
+        </div>
+        <ul class="acts">
+          <li>
+            <b>Move assurance reporting off vulnerability counts and onto business-logic
+            abuse.</b> With more than 70% of exploited cases having no patch window, the
+            measurable controls are velocity anomalies on payouts, new-beneficiary patterns and
+            impossible-sequence detection.
+          </li>
+          <li>
+            <b>Pressure-test processor concentration.</b> Establish in advance what evidence
+            you would need, and could obtain, if a core processor's controls failed — the
+            question the Fiserv litigation is currently contesting in public.
+          </li>
+          <li>
+            <b>Put AI accountability on the board agenda.</b> The RBNZ and FMA expectation is
+            explicit: the board should know where AI is used in the estate and who is
+            accountable for each use.
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">06</span>Confidence, gaps and method</h2>
+    <p>
+      <b>Nothing in this window reaches high confidence under the project rubric</b>, which
+      requires two or more genuinely independent sources. No item here is corroborated that way.
+      The supervisory statements are high confidence as statements — a named official speaking
+      on the record, a primary institutional publication — but they are expectations, not
+      observed incidents. The UNCX exploit mechanism is high confidence, resting on two
+      independent security firms.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Gap</th>
+            <th>Effect on confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>No first-party telemetry from any affected institution</td><td class="mono">−0.15</td></tr>
+          <tr><td>Korea loan-origination attempt rests on a single outlet's exclusive</td><td class="mono">−0.10</td></tr>
+          <tr><td>No malware sample or C2 beacon captured for any item</td><td class="mono">−0.10</td></tr>
+          <tr><td>JPCERT's AI-usage claim lacks a stated method</td><td class="mono">−0.10</td></tr>
+          <tr><td>Sensors see exposed services, not traffic, for the three addresses</td><td class="mono">−0.05</td></tr>
+          <tr><td>Provider concentration is common across many tenants</td><td class="mono">−0.05</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p>
+        <b>Method.</b> Passive collection only; no active probing was performed and no
+        authorisation for it exists in this session. Enrichment of the three published
+        addresses used no-key sources — Shodan InternetDB, GreyNoise community, RDAP and DoH
+        PTR — plus cached Spamhaus DROP, CINS and Feodo lists.
+      </p>
+      <p>
+        <b>Instrument failure recorded.</b> The shared helper's threat-feed function downloads
+        the published lists and prints their entry counts; it performs no membership test on
+        any address. Reading its output as &ldquo;no hits&rdquo; would have produced a
+        fabricated negative. The membership check in this brief was written separately, with a
+        positive control drawn from a DROP-listed network. An earlier bare-string version of
+        that check was discarded once the control showed it could not match an address inside
+        a CIDR block.
+      </p>
+      <p>
+        <b>Coverage limits.</b> There is no Tor access in this environment. Dark-web sources
+        were substituted with abuse.ch, OTX and Spamhaus, and the substitution is stated here
+        rather than their silence being reported as a finding. The Feodo feed is frozen and a
+        miss against it carries no weight. No paid enrichment source was queried, so the
+        addresses above are unenriched beyond what free instruments return.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">07</span>Source assessment</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th class="mono">Reliability</th>
+            <th>Limitation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>JPCERT/CC</td><td class="mono">High</td><td>National CERT; AI-usage claim asserted without stated method</td></tr>
+          <tr><td>IMF Global Financial Stability Report</td><td class="mono">High</td><td>Primary institutional publication; published 13 Oct, two days before the window</td></tr>
+          <tr><td>Reuters, on the record</td><td class="mono">High</td><td>Direct quotation of a named official</td></tr>
+          <tr><td>Shodan InternetDB / GreyNoise community</td><td class="mono">Medium-high</td><td>Describe exposed services and scanning, not the host's intent; tags are sensor judgements</td></tr>
+          <tr><td>Korean financial press (Chosun, DigitalToday, SEDaily, SBS)</td><td class="mono">Medium</td><td>Regulator statements are solid; the Chosun loan-attempt item is a single exclusive</td></tr>
+          <tr><td>American Banker, TechNewsReel</td><td class="mono">Medium</td><td>Trade press; underlying filings and court documents not read directly</td></tr>
+          <tr><td>Ransomware leak-site trackers</td><td class="mono">Low</td><td>Republish the claimant's own post; no victim confirmation or independent telemetry</td></tr>
+          <tr><td>Threat Times (GhostBat)</td><td class="mono">Low</td><td>Single low-tier outlet, no vendor research or sample</td></tr>
+          <tr><td>Aggregator briefing sites</td><td class="mono">Low</td><td>Date-shift source of record; the &ldquo;Japan cyber emergency&rdquo; claim originated here</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="idx">08</span>Sources retrieved</h2>
+    <p class="secnote">Every item below was retrieved on 16 October 2026 and links to the page it came from.</p>
+
+    <h3 class="srcgrp">South Korea</h3>
+    <ul class="srcs">
+      <li><span class="rel">Primary</span><a href="https://www.fsc.go.kr/eng/pr010101/87928">Korea Financial Services Commission</a> — press releases on the financial-sector hacking wave</li>
+      <li><span class="rel">Press</span><a href="https://biz.chosun.com/en/en-finance/2026/10/16/S5QJEUD2GJECJH3HJTBIVW2K4M/">ChosunBiz</a> — Chinese IP targets DB Savings Bank with employee loan attempts, 16 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.chosun.com/english/market-money-en/2026/10/16/TD5VAAA545G3PH7YGYTTHWVUUI/">Chosun</a> — DB Savings Bank halts loan bid, 16 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.digitaltoday.co.kr/en/view/114887/ok-savings-bank-confirms-personal-data-leak-of-250-customers-including-account-numbers-and-annual-income">DigitalToday</a> — OK Savings Bank confirms 250 customers affected, 15 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://en.sedaily.com/finance/2026/10/15/ok-savings-bank-confirms-data-breach-affecting-250-customers">Seoul Economic Daily</a> — OK Savings Bank confirmation, 15 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://en.sedaily.com/finance/2026/10/15/hacking-hits-16-korean-financial-firms-130-flagged-in-security-review">Seoul Economic Daily</a> — 130 of 555 firms flagged, 15 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://en.sedaily.com/finance/2026/10/14/crypto-exchange-gopax-hacked-as-100000-records-leak-at-16">Seoul Economic Daily</a> — Gopax (Streami) among the 16 firms, 14 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://en.sedaily.com/finance/2026/10/14/hacking-attacks-hit-koreas-second-tier-lenders-despite">Seoul Economic Daily</a> — second-tier lenders hit despite emergency checks, 14 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.digitaltoday.co.kr/en/view/114620/financial-sector-hacking-leaks-100000-records-fsc-tightens-ceo-security-accountability">DigitalToday</a> — FSC tightens CEO security accountability, Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.koreatimes.co.kr/business/banking-finance/20261014/ai-driven-cyberattacks-hit-16-financial-firms-expose-100000-records">The Korea Times</a> — AI-driven attacks hit 16 financial firms, 14 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.bleepingcomputer.com/news/security/south-korea-probes-bank-breaches-amid-suspected-ai-powered-attacks/">BleepingComputer</a> — South Korea probes bank breaches, Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://news.sbs.co.kr/english/article.do?news_id=N1008797951">SBS News</a> — 16 firms, approximately 100,000 records, Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.channelnewsasia.com/business/south-korea-finds-hacking-incidents-total-16-financial-firms-6458186">CNA</a> — South Korea finds hacking incidents at 16 financial firms</li>
+    </ul>
+
+    <h3 class="srcgrp">Japan</h3>
+    <ul class="srcs">
+      <li><span class="rel">Primary</span><a href="https://www.jpcert.or.jp/wr/2026/wr261015.html">JPCERT/CC</a> — weekly report, 15 Oct 2026 <em>(source of the three published addresses)</em></li>
+      <li><span class="rel">Analysis</span><a href="https://japancyberwatch.com/articles/jpcert-cc-attack-servers-ai-apk-analysis-2026">Japan Cyber Watch</a> — inside the attack servers, APK analysis to SSRF</li>
+      <li><span class="rel">Analysis</span><a href="https://japancyberwatch.com/articles/japan-breach-wave-frontier-ai">Japan Cyber Watch</a> — the &ldquo;frontier AI&rdquo; claim and what the evidence shows <em>(source of the no-emergency correction)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.sankei.com/article/20261015-KITZWXG2MRNVXJULWG7LPLWIEQ/">Sankei</a> — AI abuse framed as a possibility, 15 Oct 2026</li>
+      <li><span class="rel">Primary</span><a href="https://www.idcf.jp/news/topics/20261008001">IDC Frontier</a> — third report on the IDCF Cloud incident, Oct 2026 <em>(excluded: 7 Oct)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.daiwair.co.jp/td_download.cgi?c=8601&i=3301695">Daiwa Securities</a> — vendor breach statement <em>(excluded: 5 Oct)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.japantimes.co.jp/business/2026/10/05/companies/daiwa-securities-clients-info-stolen/">The Japan Times</a> — Daiwa, 110,000 clients, 5 Oct 2026 <em>(excluded)</em></li>
+    </ul>
+
+    <h3 class="srcgrp">India and wider APAC</h3>
+    <ul class="srcs">
+      <li><span class="rel">Press</span><a href="https://economictimes.indiatimes.com/industry/banking/finance/cyberattacks-affect-20-financial-institutions-cert-in-warns-on-api-vulnerabilities-and-security-measures/articleshow/134950731.cms">The Economic Times</a> — CERT-In warns on API vulnerabilities, ~20 institutions</li>
+      <li><span class="rel">Press</span><a href="https://threattimes.com/category/malware/ghostbat-rat-evolves-to-steal-upi-pins-via-fake/">Threat Times</a> — GhostBat RAT and UPI PIN theft, 15 Oct 2026</li>
+      <li><span class="rel">Primary</span><a href="https://announcements.asx.com.au/asxpdf/20261002/pdf/074vkzv9zn0dkq.pdf">OFX Group</a> — ASX cybersecurity incident announcement, 2 Oct 2026 <em>(excluded)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.fst.net.au/news/news/asx-listed-fintech-firm-discloses-cyber-incident-impacting-client-data">FST Media</a> — OFX discloses cyber incident affecting client data</li>
+      <li><span class="rel">Press</span><a href="https://smbtech.au/news/ofx-confirms-customer-data-accessed-in-september-cyber-breach/">SMBtech</a> — OFX confirms customer data accessed, 16 Oct 2026</li>
+    </ul>
+
+    <h3 class="srcgrp">Supervisory and regulatory</h3>
+    <ul class="srcs">
+      <li><span class="rel">Press</span><a href="https://www.pymnts.com/cybersecurity/2026/boe-warns-banks-against-ai-cybersecurity-risks/">PYMNTS</a> — Bank of England warns banks on AI cyber risk, 15 Oct 2026 <em>(Reuters remarks by Sarah Breeden)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.imf.org/en/publications/gfsr/issues/2026/10/13/global-financial-stability-report-october-2026">IMF</a> — Global Financial Stability Report, October 2026 <em>(excluded: 13 Oct)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.imf.org/en/blogs/articles/2026/10/12/global-financial-markets-face-rising-risks-from-ai-bond-yields-and-cyberattacks">IMF Blog</a> — rising risks from AI, bond yields and cyberattacks, 12 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.computerweekly.com/news/366652153/IMF-warns-of-cyber-threat-to-digitally-connected-financial-markets">Computer Weekly</a> — IMF warns of cyber threat to connected markets</li>
+      <li><span class="rel">Primary</span><a href="https://www.fma.govt.nz/news/all-releases/media-releases/rbnz-and-fma-outline-supervisory-expectations-on-cyber-and-ai-risk/">RBNZ and FMA</a> — joint supervisory expectations on cyber and AI risk, 15 Oct 2026 <em>(returned HTTP 403 to automated retrieval)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.rnz.co.nz/news/business/1952204/financial-regulators-urge-stronger-cyber-security-amid-ai-enabled-cyber-attacks">RNZ</a> — regulators urge stronger security amid AI-enabled attacks, 16 Oct 2026</li>
+      <li><span class="rel">Advisory</span><a href="https://www.marsh.com/en-gb/services/risk-consulting/insights/ecb-frontier-ai-cyber-action-plan-2026.html">Marsh</a> — ECB requires an action plan by 31 October 2026</li>
+      <li><span class="rel">Press</span><a href="https://www.americanbanker.com/news/ecb-tells-banks-fix-ai-cyber-gaps-by-oct-31">American Banker</a> — ECB tells banks to fix AI cyber gaps by 31 Oct</li>
+    </ul>
+
+    <h3 class="srcgrp">Americas</h3>
+    <ul class="srcs">
+      <li><span class="rel">Press</span><a href="https://www.americanbanker.com/news/ohio-bank-joins-credit-unions-suing-fiserv-over-security">American Banker</a> — Ohio bank joins credit unions suing Fiserv, 15 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://technewsreel.com/cybersecurity/missouri-central-credit-union-breach-exposes-ssns-and-financial-data">TechNewsReel</a> — Missouri Central Credit Union breach, 15 Oct 2026</li>
+      <li><span class="rel">Tracker</span><a href="https://www.ransomware.live/id/VGVsY29lIEZlZGVyYWwgQ3JlZGl0IFVuaW9uQHFpbGlu">ransomware.live</a> — Telcoe Federal Credit Union, Qilin</li>
+      <li><span class="rel">Tracker</span><a href="https://pulse.kalir.io/en/brief/ransomware-qilin-publica-a-telcoe-federal-6f70882e">Kalir</a> — Qilin publishes Telcoe Federal Credit Union</li>
+      <li><span class="rel">Tracker</span><a href="https://threatcluster.io/dark-web/victim/telcoe-federal-credit-union-5ab7fd58a12bc1c0">threatcluster</a> — Telcoe victim record</li>
+      <li><span class="rel">Tracker</span><a href="https://todayincyber.io/feed/ransomware/article/01a14138-6f5a-77ed-a96f-807656d18d0c">Today In Cyber</a> — Qilin publishes a new victim</li>
+      <li><span class="rel">Tracker</span><a href="https://www.hookphish.com/blog/ransomware-group-qilin-hits-telcoe-federal-credit-union/">HookPhish</a> — Qilin hits Telcoe Federal Credit Union</li>
+    </ul>
+
+    <h3 class="srcgrp">Europe, Middle East and excluded items</h3>
+    <ul class="srcs">
+      <li><span class="rel">Press</span><a href="https://cybersecuritynews.com/attackers-breach-european-bank/">Cybersecurity News</a> — European bank breached via third-party gateway <em>(excluded: 14 Oct)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.europol.europa.eu/media-press/newsroom/news/teenager-suspected-of-leading-killsec-ransomware-group-law-enforcement-seizes-servers-and-leak-site">Europol</a> — KillSec takedown <em>(excluded: 1 Oct)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.eurojust.europa.eu/news/teenagers-suspected-leading-ransomware-group-arrested-during-international-operation">Eurojust</a> — KillSec arrests <em>(excluded)</em></li>
+      <li><span class="rel">Vendor</span><a href="https://partner.gurucul.com/articles/ThreatResearch/Casbaneiro-Banking-Trojan-Paired-With-14-10-2026">Gurucul</a> — Casbaneiro paired with a malicious Chromium extension <em>(excluded: 14 Oct)</em></li>
+      <li><span class="rel">Press</span><a href="https://cybernews.com/security/deutsche-telekom-t-systems-data-breach/">Cybernews</a> — SafePay claims against T-Systems <em>(excluded: 6 Oct)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.ic3.gov/CSA/2026/261006.pdf">FBI IC3</a> — FortiBleed joint advisory, 6 Oct 2026 <em>(excluded)</em></li>
+      <li><span class="rel">Primary</span><a href="https://www.cisa.gov/news-events/alerts/2026/10/13/cisa-urges-patching-newly-exploited-vulnerability-ivanti-connect-secure">CISA</a> — Ivanti Connect Secure exploited vulnerability, 13 Oct 2026 <em>(excluded)</em></li>
+      <li><span class="rel">Tracker</span><a href="https://pulse.kalir.io/en/brief/filtracion-de-datos-de-pasarela-de-8fd47e16">Kalir</a> — Geidea payment gateway leak, Saudi Arabia <em>(excluded: detected 13 Oct)</em></li>
+      <li><span class="rel">Tracker</span><a href="https://qpulse.quasarcybertech.com/news/6814/incransom-ransomware-group-exfiltrates-1-53-tb-of-data-from-financiamento-ltda">QPulse</a> — Incransom exfiltrates 1.53 TB from H2 Financiamento, Brazil <em>(excluded: 14 Oct)</em></li>
+    </ul>
+
+    <h3 class="srcgrp">Malware research</h3>
+    <ul class="srcs">
+      <li><span class="rel">Press</span><a href="https://www.securityweek.com/novel-android-banking-rat-hirudo-replaces-banking-apps-with-trojanized-copies/">SecurityWeek</a> — Hirudo Android RAT <em>(excluded: covered 14–15 Oct)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.bleepingcomputer.com/news/security/hirudo-android-malware-replaces-banking-apps-to-evade-security-checks/">BleepingComputer</a> — Hirudo replaces banking apps <em>(excluded)</em></li>
+      <li><span class="rel">Press</span><a href="https://www.cryptotimes.io/2026/10/15/uncx-exploit-escalates-vesting-v2-bug-drains-1-5m-across-4-chains-as-copycats-join-in/">Crypto Times</a> — UNCX exploit escalates, 15 Oct 2026</li>
+      <li><span class="rel">Press</span><a href="https://news.bitcoin.com/security/an-86000-exploit-rocks-a-crypto-pool-built-to-lock-tokens/">Bitcoin.com News</a> — the initial $86,000 UNCX drain</li>
+    </ul>
+  </section>
+</div>
+
+<div class="wrap">
+  <footer>
+    <p>Prepared 16 October 2026 from open sources. Window: 15 October 00:00 to 16 October 2026. TLP:AMBER — internal and named-partner distribution.</p>
+    <p>Every indicator above is reported as found. The three addresses in section 02 were enriched passively and are stated with their corroboration and their limits.</p>
+  </footer>
+</div>
