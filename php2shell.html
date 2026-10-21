@@ -399,8 +399,8 @@
     <div class="meta-row">
       <span class="chip chip-crit">Critical · pre-patch</span>
       <span class="chip chip-mute">TLP:CLEAR</span>
-      <span>Compiled 03:55 · revised 04:55 · 06:55 · 07:15 · 09:10 UTC</span>
-      <span>Patch scheduled 14:00 UTC · 5h out</span>
+      <span>Compiled 03:55 · revised 04:55 · 06:55 · 07:15 · 09:10 · 13:35 UTC</span>
+      <span>Patch scheduled 14:00 UTC · 25m out</span>
     </div>
     <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
     <p class="subtitle">Pre-patch intelligence brief for SOC and threat hunting teams. Two critical PHP remote-code-execution flaws, an embargo that broke roughly 22 hours before the fix, and exploit code already in public circulation.</p>
@@ -412,7 +412,7 @@
       <li><strong>Two PHP core RCEs, rated CVSS v4.0 9.2 each</strong> by the PHP security team. Fixed versions are reported as <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code>. None of that is confirmed by PHP yet — the advisory ships today at 14:00 UTC.</li>
       <li><strong>No confirmed exploitation in the wild, no IOCs, not in CISA KEV.</strong> watchTowr and Huntress both report nothing observed as of this writing. That is a statement about their telemetry, not proof of absence.</li>
       <li><strong>Exploit code is public, but the headline PoC is self-discounting.</strong> A 39.7 MB "lab weaponized" bundle has been downloadable since ~01:58 UTC and was <em>re-uploaded</em> at 03:24; thirty-five GitHub repositories now exist, most of them defensive. The author's own ASAN build armed both cached pointers and <em>did not</em> fire a use-after-free — the crash needs a heap-groom stage the bundle does not demonstrate. The pre-patch exposure window is now ~17 hours old.</li>
-      <li><strong>The root cause is genuinely contested.</strong> Four incompatible technical models are circulating, the newest arriving at 07:55 UTC. One is a heap use-after-free requiring a per-build offset leak; another is a session state-machine chain that only reaches RCE through an application-level <code>include()</code>; a public php-src pull request matches one primitive exactly; the fourth moves the use-after-free into PHP's unserializer entirely. Do not plan on the headline version.</li>
+      <li><strong>The root cause is genuinely contested.</strong> Five incompatible technical models are circulating, the newest arriving at 13:35 UTC — and one of them is the leaker's own. One is a heap use-after-free requiring a per-build offset leak; another is a session state-machine chain that only reaches RCE through an application-level <code>include()</code>; a public php-src pull request matches one primitive exactly; the fourth moves the use-after-free into PHP's unserializer entirely. Do not plan on the headline version.</li>
       <li><strong>Act now on inventory, not on the exploit narrative.</strong> Patch internet-facing PHP at 14:00 UTC, treat PHP 8.1 and older as permanently exposed, and hunt on process lineage plus session-file content rather than on request signatures.</li>
       <li><strong>There are no network IOCs. The IOC is a host artefact.</strong> Nothing connects to an external address — the only URL in the published bundle is a <code>https://host/x.php</code> placeholder. The durable signal is a session file containing <code>upload_progress_&lt;?php</code>. The published User-Agents and the <code>t[]</code> groom shape belong to one tool and change in seconds.</li>
     </ol>
@@ -433,6 +433,15 @@
     <p><strong>The repository population doubled, 17 → 35, and the growth is defensive.</strong> WAF and reverse-proxy rule sets, Ansible playbooks, one-line <code>php.ini</code> hardening, PHP-FPM crash watchdogs and estate scanners. Only a handful contain exploit code. That is the ecosystem maturing, not the threat maturing — and none of it substitutes for the patch.</p>
     <p><strong>A fourth technical chain appeared at 07:55 UTC, and this one ships code.</strong> It moves the use-after-free out of <code>session.c</code> and into PHP's unserializer. We checked it against php-src line by line: the mechanism holds up, the framing does not. Full analysis in the technical section.</p>
     <p><strong>The bundle has not moved since 03:24:49.</strong> Same 39,765,851 bytes, same mtime, served from Cloudflare cache. The page still advertises <code>a29d640e…3017</code>, which matches nothing we can fetch.</p>
+  </div>
+
+  <div class="callout info" style="margin-top:22px;">
+    <span class="label">What changed since the 09:10 revision — measured 13:30–13:35 UTC</span>
+    <p><strong>The bundle has been withdrawn.</strong> The download URL that served 39.7 MB all day now returns <strong>HTTP 404</strong> (13:32 UTC). The post itself is still up and now advertises a <em>fourth</em> checksum, <code>74adf2c4…93f0</code>, which has never matched anything. Whether this is the author pulling the artefact, a takedown, or a rotation mid-flight is not knowable from outside; what is knowable is that no one can now verify the binary anyone may already have run.</p>
+    <p><strong>A far more plausible root cause surfaced, and it is not in <code>session.c</code>.</strong> The account that leaked PHP2Shell in the first place — <code>calif.io</code> — published <code>MADBugs/php</code>: a missing <code>BG(serialize_lock)++</code> in <code>zend_user_unserialize()</code>, verified by us at source. That is a different bug from every model this brief has carried so far. It also cuts against that bug being one of these CVEs — PHP's own 2017 policy is not to treat <code>unserialize()</code> memory corruption as a security vulnerability. See the technical section.</p>
+    <p><strong>The repository population tripled again: 35 → 102 in four hours.</strong> A national CERT has now published operational guidance — <a href="https://github.com/NCSC-NL/php2shell">NCSC-NL/php2shell</a>, TLP:CLEAR, mirroring CERT-EU, "no indication of active exploitation" but "large-scale exploitation likely in the short term". Alongside it: CrowdSec rules, nuclei templates, a PHP extension, a PrestaShop module, a Cloudflare Worker, and someone backporting the fix to PHP 7.4 themselves.</p>
+    <p><strong>One outlet claims in-the-wild exploitation. We are not carrying it as fact.</strong> <em>The News</em> (Pakistan) states "Active exploitation in the wild has been confirmed as reported by Cloudflare and security researchers" — one sentence, no Cloudflare report linked, no researcher named, contradicted by watchTowr, Huntress, NCSC-NL and ACSC. It is recorded below as <span class="chip chip-crit">Unconfirmed</span> with that denominator attached.</p>
+    <p><strong>Official state, re-checked 13:35 UTC:</strong> MITRE <code>CVE_RECORD_DNE</code>, NVD 0, KEV still <code>2026.10.20</code> / 1,754, ThreatFox zero for both IDs and for "php2shell".</p>
   </div>
 
   <section>
@@ -462,7 +471,7 @@
       <div class="tile">
         <div class="k">Public exploit</div>
         <div class="v">Yes</div>
-        <div class="n">Bundle unchanged since 03:24 · 35 repos, mostly defensive · advertised checksum still mismatched</div>
+        <div class="n">Download URL now 404 · page advertises a 4th checksum · 102 repos, mostly defensive</div>
       </div>
       <div class="tile">
         <div class="k">PHP hosts on Shodan</div>
@@ -519,7 +528,7 @@
 
   <section>
     <p class="eyebrow">Technical assessment</p>
-    <h2>Four competing models, none of them vendor-confirmed</h2>
+    <h2>Five competing models, none of them vendor-confirmed</h2>
     <p>Every public description agrees the flaw is reachable through <code>multipart/form-data</code> against a PHP endpoint with <code>session.upload_progress</code> enabled — which is the default. Beyond that, the accounts diverge sharply, and the difference matters enormously to impact.</p>
 
     <figure>
@@ -627,6 +636,16 @@
       <p><span class="chip chip-crit">Not a pre-auth core RCE</span> all three of the repository's chains need something from the application: an <code>include()</code> of an attacker-influenced path, an <code>unserialize()</code> of attacker-controlled data with classes permitted, or a per-directory <code>session.serialize_handler</code> mismatch <em>plus</em> a POP gadget. That precondition is the one the earlier models already carried, restated as though it were new.</p>
       <p>The escalation is asserted rather than shown — reading <code>zif_system</code> out of <code>executor_globals.function_table</code> and rewriting <code>var_dump</code>'s handler through <code>/proc/self/mem</code>. The write step presupposes code execution the chain has not yet obtained, and the ASLR position is never explained. Treat the whole thing as a <span class="chip chip-warn">Medium</span> lead against a <span class="chip chip-crit">Unconfirmed</span> CVE mapping. Note also that the README's "full writeup" link points at a Substack whose newest post is dated 19 October and is not about PHP — as of 09:00 UTC the only copy of this analysis is the repository itself.</p>
     </div>
+
+    <h3>Model E — the leaker's own root cause, in <code>zend_interfaces.c</code> — checked 13:35 UTC</h3>
+    <p>This one matters more than its position in the list suggests, because of who published it. The <code>@calif_io</code> account that dropped the PHP2Shell claim and the exploit video on 20 October also published <a href="https://calif.io/research/php-uaf">a technical write-up</a> and PoC under the label <em>MADBugs</em>. It locates the bug somewhere none of the other four models do: <code>Zend/zend_interfaces.c</code>.</p>
+    <p>The claim is a one-line omission. <code>zend_user_unserialize()</code> dispatches the userland <code>Serializable::unserialize()</code> method, and unlike the <code>__wakeup</code> and <code>__unserialize</code> dispatch points in <code>var_unserializer.re</code> (<code>:277</code>, <code>:294</code>, both verified in this brief), it does <strong>not</strong> raise <code>BG(serialize_lock)</code>. With the lock at zero, an inner <code>unserialize()</code> called from inside that method shares the outer parser's back-reference table; the inner object's property zvals get registered as outer slots pointing into its own property-table buffer; a later property-table resize frees that buffer; and an <code>R:N</code> back-reference then reads through the stale slot.</p>
+    <div class="callout crit">
+      <span class="label">What we verified, and what it implies for the CVE mapping</span>
+      <p><span class="chip chip-ok">Source confirmed</span> <code>zend_user_unserialize()</code> at <code>zend_interfaces.c:442–461</code> contains no <code>BG(serialize_lock)</code> increment — the string does not appear anywhere in that file — and the function is byte-for-byte equivalent in <code>PHP-8.2</code> at <code>:438</code>. The asymmetry with the <code>__wakeup</code>/<code>__unserialize</code> paths is real.</p>
+      <p><span class="chip chip-warn">But it is probably not either CVE.</span> The write-up assigns <strong>no CVE identifier</strong>, and it notes PHP's standing 2017 policy that <code>unserialize()</code> memory-corruption bugs are not treated as security vulnerabilities. If that policy still holds, a 9.2 advisory is unlikely to be this. The likelier reading is that the leak bundled two different things: the session-handler CVEs that PHP is actually patching at 14:00 UTC, and a separate unserializer UAF that the leaker had also found and demonstrated.</p>
+      <p><span class="chip chip-warn">Reproduction is claimed, not witnessed</span> — 10/10 local runs on PHP 8.5.5, and 3/3 remote against <code>php:8.5-apache</code> at roughly 2,375 HTTP requests per run. We have not reproduced it and cannot: no PHP runtime here. The remote precondition is genuinely strong — the target must load a <code>Serializable</code> class that recursively deserializes inner data <em>and</em> then enlarges the inner object's property table. The write-up itself calls real-world matches "uncommon".</p>
+    </div>
   </section>
 
   <section>
@@ -644,7 +663,7 @@
             <td><code>jackalsyn.com</code> bundle</td>
             <td class="num">21 Oct 01:58<br>re-up 03:24</td>
             <td>39.7 MB: framework, <code>poc0_109618.py</code>, <code>poc1_109619.py</code>, trigger, three LiteSpeed debug-symbol files, plus validation docs</td>
-            <td><span class="chip chip-crit">Unverified</span> re-uploaded; advertised checksum still does not match the served file</td>
+            <td><span class="chip chip-crit">Withdrawn</span> URL returns <strong>HTTP 404</strong> since 13:32 UTC; page now advertises a fourth checksum that has never matched</td>
           </tr>
           <tr>
             <td><a href="https://github.com/Zer061/CVE-2026-109618">Zer061/CVE-2026-109618</a></td>
@@ -657,6 +676,18 @@
             <td class="num">21 Oct 03:22</td>
             <td>Independent chain: driver, RCE chain, probe, payload snapshot, PHP error log</td>
             <td>Claims Model A falsified; lab-only, needs an app sink</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/9bie/php2shell-bypass-aslr-exp">9bie/php2shell-bypass-aslr-exp</a></td>
+            <td class="num">21 Oct 11:11</td>
+            <td>One <code>exploit.py</code> against php:8.4.26-apache; claims HTTP-only, no <code>session_start()</code> on the target, self-read libphp offsets, <code>uid=33(www-data)</code></td>
+            <td><span class="chip chip-crit">Unverified</span> single author, no independent repro; needs <code>display_errors=1</code> — the <code>display_errors=0</code> path is only a heap leak so far</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/daffa001/php-CVE-2026-109618-CVE-2026-109619">daffa001/…-109618-109619</a></td>
+            <td class="num">21 Oct 09:36</td>
+            <td>38.9 MB — by size and shape another copy of the withdrawn bundle, with <code>archives/</code>, <code>evidence/</code> and <code>SHA256SUMS</code></td>
+            <td><span class="chip chip-crit">Unverified</span> third-party mirror of an artefact its author has now removed</td>
           </tr>
           <tr>
             <td>Icex0/php2shell-poc</td>
@@ -788,6 +819,9 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
           <tr><td><a href="https://github.com/ikow/php2shell-poc">ikow</a> — <code>var_destroy</code> destructor reentry</td><td>ASAN heap-use-after-free at <code>var_unserializer.c:851</code>, escalated to <code>system()</code></td><td><strong>Mechanism confirmed in source; execution not reproduced here.</strong> The unlocked destructor call and the parser-state reuse branch are real (technical section above). The <code>/proc/self/mem</code> escalation is asserted, not shown. Needs an application <code>unserialize()</code> sink with classes allowed.</td></tr>
           <tr><td><a href="https://github.com/0x4148/CVE-2026-109618-php2shell-lab">0x4148</a> Docker lab</td><td>UAF → <code>system()</code></td><td><strong>Reaches the path only.</strong> Its own success output is <code>Armed: YES</code> — both cached pointers written through, no sanitizer report, no command execution. It does not claim otherwise.</td></tr>
           <tr><td><a href="https://github.com/eness/php2shell-CVE-2026-109618-CVE-2026-109619-PoC">eness</a> PoC</td><td>"Confirmed on 8.4.4 and 8.2.34"</td><td><strong>No code published.</strong> README says the PoC "will be published very soon"; the confirmation claim has nothing behind it.</td></tr>
+          <tr><td><a href="https://calif.io/research/php-uaf">calif.io / MADBugs</a> — <code>Serializable</code> reentrancy UAF</td><td>Missing <code>BG(serialize_lock)++</code> in <code>zend_user_unserialize()</code> → RCE</td><td><strong>Source confirmed; execution not reproduced here.</strong> Lock absence verified in <code>8.4</code> and <code>8.2</code>. Author reports 10/10 local on 8.5.5 and 3/3 remote at ~2,375 requests. No CVE assigned; strong remote precondition.</td></tr>
+          <tr><td><a href="https://github.com/9bie/php2shell-bypass-aslr-exp">9bie</a> <code>exploit.py</code></td><td>HTTP-only pre-auth RCE on 8.4.26 + mod_php</td><td><strong>Unverified, and the strongest claim in the ecosystem if true.</strong> Single author, Chinese-language write-up, no independent reproduction; requires <code>display_errors=1</code>.</td></tr>
+          <tr><td><a href="https://github.com/Gi1gamesh123/php-unserialize-uaf-rce">Gi1gamesh123</a> — var_hash UAF reproduction</td><td>ASAN UAF on 8.4.4; full RCE on Ubuntu php8.3.6</td><td><strong>Independent reproduction of the calif.io bug</strong>, with an ASan log and an adapted exploit. Same precondition: an application <code>unserialize()</code> entry with the right gadget shape.</td></tr>
         </tbody>
       </table>
     </div>
@@ -809,6 +843,7 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
           <tr><td>Honeypot / sensor sightings</td><td><span class="chip chip-mute">None published</span></td><td>No public GreyNoise, Shadowserver or honeypot data for these identifiers</td></tr>
           <tr><td>Threat-actor attribution</td><td><span class="chip chip-ok">None</span></td><td>"No attribution has been made public"</td></tr>
           <tr><td>Mass-exploitation forecast</td><td><span class="chip chip-warn">Predicted</span></td><td>Sansec expects mass attacks "within 15 minutes" of release — a forecast, not an observation</td></tr>
+          <tr><td>Uncorroborated ITW claim</td><td><span class="chip chip-crit">Unconfirmed</span></td><td><em>The News</em> (Pakistan) states "Active exploitation in the wild has been confirmed as reported by Cloudflare and security researchers" — one sentence, no linked Cloudflare report, no named researcher. Four primary trackers are negative. Recorded, not adopted.</td></tr>
           <tr><td>Regulatory posture</td><td><span class="chip chip-warn">Advisories issued</span></td><td>CERT-EU 2026-018 (20 Oct 20:33 UTC); Australian ACSC published a critical alert on 21 Oct. The ACSC text was read only through a search summary — direct retrieval failed twice from this network and is recorded as unexecuted, not as an absence</td></tr>
         </tbody>
       </table>
@@ -1061,6 +1096,8 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
           <tr><td>Which CVE is which issue</td><td><span class="chip chip-crit">Unknown</span></td><td>No source states the mapping</td></tr>
           <tr><td>A heap-UAF exists in <code>var_destroy</code> on destructor reentry</td><td><span class="chip chip-ok">High</span></td><td>Read by us from <code>PHP-8.4</code>, <code>8.2</code> and <code>7.2</code>: the unlocked <code>i_zval_ptr_dtor</code> and the parser-state reuse branch are both real and long-standing</td></tr>
           <tr><td>That defect is one of these two CVEs, or yields pre-auth RCE</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>No vendor statement; the code predates the leak by years, every chain needs an application sink, and the escalation step is asserted rather than demonstrated</td></tr>
+          <tr><td>A missing <code>serialize_lock</code> in <code>zend_user_unserialize()</code></td><td><span class="chip chip-ok">High</span></td><td>Verified by us in <code>PHP-8.4:442–461</code> and <code>PHP-8.2:438</code>; no increment anywhere in that file, unlike the <code>__wakeup</code>/<code>__unserialize</code> paths</td></tr>
+          <tr><td>That bug is one of these two CVEs</td><td><span class="chip chip-crit">Unlikely</span></td><td>No CVE assigned by its authors; PHP's 2017 policy excludes <code>unserialize()</code> memory corruption from security releases</td></tr>
           <tr><td>watchTowr reproduced CVE-2026-109618</td><td><span class="chip chip-warn">Medium</span></td><td>Reporter-relayed statement from two outlets; watchTowr's own FAQ states no reproduction status and no PoC has been published</td></tr>
           <tr><td>OpenAI and Wiz participated in coordination</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Single self-reported X post, reproduced nowhere else</td></tr>
         </tbody>
@@ -1076,6 +1113,9 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
       <li><strong>Exploitation telemetry beyond vendor customer bases.</strong> No honeypot or GreyNoise measurement was available to us for these identifiers.</li>
       <li><strong>The <code>var_destroy</code> chain end to end.</strong> We confirmed the mechanism in source but could not execute it: this environment has no PHP binary and no container runtime. The author's ASAN trace is credible in shape and remains unreproduced.</li>
       <li><strong>The ACSC alert text.</strong> Two retrieval attempts failed from this network; its content is reported here from a search summary and labelled as such.</li>
+      <li><strong>The calif.io reproduction.</strong> We verified the missing lock in source but could not run the PoC — no PHP runtime and no container engine in this environment. The 10/10 local and 3/3 remote figures are the author's.</li>
+      <li><strong>The 9bie HTTP-only exploit.</strong> Not fetched, not run, not independently reproduced. If it works as claimed it changes the impact picture more than anything else published today, so it is the first thing to test once a safe lab exists.</li>
+      <li><strong>Whether <em>The News</em>'s exploitation claim is true.</strong> No Cloudflare publication was found to support it. A negative from four vendors is not a refutation, but an unsourced sentence is not evidence either.</li>
     </ul>
     <p>No PoC was executed and no active scanning was performed against any target in producing this brief.</p>
   </section>
@@ -1114,6 +1154,11 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
       <li><span class="src-title"><a href="https://github.com/ikow/php2shell-poc">ikow/php2shell-poc — three claimed RCE chains (07:55 UTC)</a></span><span class="src-meta">Self-published · session injection, <code>var_destroy</code> reentry UAF, handler mismatch; ASAN trace unreproduced here; README's writeup link is dead</span></li>
       <li><span class="src-title"><a href="https://github.com/0x4148/CVE-2026-109618-php2shell-lab">0x4148/CVE-2026-109618-php2shell-lab — Docker lab</a></span><span class="src-meta">Self-published · reaches the armed-path state only; prints <code>Armed: YES</code>, no crash, no execution</span></li>
       <li><span class="src-title"><a href="https://github.com/php/php-src/blob/PHP-8.4/ext/standard/var_unserializer.re">php-src <code>var_unserializer.re</code> (our own verification)</a></span><span class="src-meta">Primary · <code>var_destroy</code> :242–246 / :308, reuse branch :77–80, <code>var_push</code> :118 / :132; same logic confirmed in <code>PHP-8.2</code> :63 and <code>PHP-7.2</code> :37</span></li>
+      <li><span class="src-title"><a href="https://calif.io/research/php-uaf">calif.io — PHP unserialize var_hash UAF (MADBugs)</a></span><span class="src-meta">Primary · the leaker's own write-up · missing <code>BG(serialize_lock)++</code>, no CVE assigned, PHP 8.5.5, 2,375-request remote demo</span></li>
+      <li><span class="src-title"><a href="https://github.com/php/php-src/blob/PHP-8.4/Zend/zend_interfaces.c">php-src <code>Zend/zend_interfaces.c</code> (our own verification)</a></span><span class="src-meta">Primary · <code>zend_user_unserialize()</code> :442–461 and <code>PHP-8.2</code> :438 checked at 13:35 UTC — no <code>BG(serialize_lock)</code> in either</span></li>
+      <li><span class="src-title"><a href="https://github.com/NCSC-NL/php2shell">NCSC-NL — php2shell (TLP:CLEAR)</a></span><span class="src-meta">Government CERT · mirrors CERT-EU; no indication of active exploitation; "large-scale exploitation likely in the short term"</span></li>
+      <li><span class="src-title"><a href="https://github.com/9bie/php2shell-bypass-aslr-exp">9bie/php2shell-bypass-aslr-exp — HTTP-only exploit</a></span><span class="src-meta">Self-published · claims pre-auth RCE on 8.4.26 + mod_php; unverified, needs <code>display_errors=1</code></span></li>
+      <li><span class="src-title"><a href="https://www.thenews.com.pk/latest/1420771-critical-php-security-vulnerabilities-how-to-fix-them">The News — Critical PHP security vulnerabilities</a></span><span class="src-meta">Reporting · 21 Oct · sole source of an in-the-wild exploitation claim; no Cloudflare report linked, contradicted by four primary trackers</span></li>
       <li><span class="src-title"><a href="https://www.securityweek.com/php2shell-mass-exploitation-looms-for-leaked-critical-php-flaws/">SecurityWeek — PHP2Shell: mass exploitation looms</a></span><span class="src-meta">Reporting · 21 Oct 03:02 ET · watchTowr reproduction claim relayed, no ITW observed</span></li>
       <li><span class="src-title"><a href="https://www.cyber.gov.au/alert/critical-vulnerabilities-in-php">Australian ACSC — Critical vulnerabilities in PHP</a></span><span class="src-meta">Government alert · 21 Oct · direct retrieval failed twice from this network, so read only via search summary — recorded as unexecuted</span></li>
       <li><span class="src-title"><a href="https://rdintel.com/cve/CVE-2026-109618">RD Intelligence — CVE-2026-109618</a></span><span class="src-meta">Aggregator · unreliable; contains templated 2024 KEV artefacts</span></li>
@@ -1121,7 +1166,7 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
   </section>
 
   <footer>
-    <p>Compiled 2026-10-21 03:55 UTC, revised 04:55, 06:55, 07:15 and 09:10 UTC, from public sources and direct measurement. TLP:CLEAR — all underlying reporting is public. Every negative result and failed check in this document is deliberate: an unexecuted query is recorded as unknown, not as clean.</p>
+    <p>Compiled 2026-10-21 03:55 UTC, revised 04:55, 06:55, 07:15, 09:10 and 13:35 UTC, from public sources and direct measurement. TLP:CLEAR — all underlying reporting is public. Every negative result and failed check in this document is deliberate: an unexecuted query is recorded as unknown, not as clean.</p>
     <p>Re-validate this document against the official PHP advisory at 14:00 UTC. The technical section is expected to change.</p>
   </footer>
 
