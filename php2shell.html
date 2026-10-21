@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>PHP2Shell Advisory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: single analytical column, status board up top, wide tables in their own scroll containers. */
+  :root {
+    --bg: #f5f4f1;
+    --surface: #ffffff;
+    --surface-2: #ecebe7;
+    --fg: #17191c;
+    --muted: #5b6169;
+    --rule: #d9d6cf;
+    --accent: #1c4f70;
+    --crit: #a3231f;
+    --warn: #855700;
+    --ok: #22633f;
+    --info: #1f5673;
+    --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --measure: 70ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121417;
+      --surface: #191c21;
+      --surface-2: #21252b;
+      --fg: #e7e5df;
+      --muted: #9aa0a8;
+      --rule: #2c3138;
+      --accent: #7fb0d4;
+      --crit: #e0736b;
+      --warn: #d8a74a;
+      --ok: #63c092;
+      --info: #83b8d6;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121417;
+    --surface: #191c21;
+    --surface-2: #21252b;
+    --fg: #e7e5df;
+    --muted: #9aa0a8;
+    --rule: #2c3138;
+    --accent: #7fb0d4;
+    --crit: #e0736b;
+    --warn: #d8a74a;
+    --ok: #63c092;
+    --info: #83b8d6;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  img { max-width: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-block: 32px 72px; }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { text-decoration-thickness: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- masthead ---- */
+  .masthead { border-top: 3px solid var(--fg); padding-top: 18px; }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .04em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 22px;
+  }
+  h1 {
+    font-size: clamp(1.7rem, 4.2vw, 2.65rem);
+    line-height: 1.08; letter-spacing: -.022em; font-weight: 600;
+    margin: 0 0 12px; text-wrap: balance;
+  }
+  .nw { white-space: nowrap; }
+  .subtitle { font-size: clamp(1rem, 2.2vw, 1.2rem); color: var(--muted); max-width: var(--measure); margin: 0 0 26px; }
+
+  /* ---- chips ---- */
+  .chip {
+    display: inline-flex; align-items: center; gap: .35em;
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 500;
+    letter-spacing: .07em; text-transform: uppercase;
+    padding: 2px 7px; border: 1px solid currentColor; border-radius: 3px;
+    white-space: nowrap; line-height: 1.5;
+  }
+  .chip-crit { color: var(--crit); }
+  .chip-warn { color: var(--warn); }
+  .chip-ok { color: var(--ok); }
+  .chip-info { color: var(--info); }
+  .chip-mute { color: var(--muted); }
+
+  /* ---- sections ---- */
+  section { margin-top: 46px; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--accent);
+    margin: 0 0 6px;
+  }
+  h2 {
+    font-size: clamp(1.32rem, 3vw, 1.66rem); line-height: 1.2;
+    letter-spacing: -.015em; font-weight: 600; margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 1.02rem; font-weight: 600; margin: 26px 0 8px;
+    letter-spacing: -.005em;
+  }
+  p { margin: 0 0 14px; max-width: var(--measure); }
+  ul, ol { margin: 0 0 14px; padding-left: 1.25em; max-width: var(--measure); }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--muted); }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--font-mono); font-size: .86em;
+    background: var(--surface-2); padding: .1em .34em; border-radius: 3px;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---- BLUF ---- */
+  .bluf {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--crit); border-radius: 3px;
+    padding: 20px 22px; margin-top: 8px;
+  }
+  .bluf h2 { font-size: 1.05rem; margin-bottom: 12px; }
+  .bluf ol { margin-bottom: 0; }
+  .bluf li { max-width: 78ch; }
+
+  /* ---- status board ---- */
+  .board {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+    border-radius: 3px; overflow: hidden; margin: 6px 0 12px;
+  }
+  @media (max-width: 800px) { .board { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .board { grid-template-columns: 1fr; } }
+  .tile { background: var(--surface); padding: 16px 16px 14px; }
+  .tile .k {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .tile .v {
+    font-size: 1.5rem; font-weight: 600; line-height: 1.15;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .tile .n { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.45; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin: 4px 0 18px; border: 1px solid var(--rule); border-radius: 3px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13.5px; }
+  th {
+    text-align: left; font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+    font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--rule);
+    background: var(--surface-2); white-space: nowrap;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.tight { white-space: nowrap; }
+  .subtle { color: var(--muted); }
+  .note { color: var(--muted); font-size: 13px; }
+
+  /* ---- timeline ---- */
+  .timeline { list-style: none; padding: 0; margin: 6px 0 16px; max-width: 860px; }
+  .timeline li {
+    display: grid; grid-template-columns: 154px 1fr; gap: 16px;
+    padding: 10px 0; border-top: 1px solid var(--rule); margin: 0;
+  }
+  .timeline li:last-child { border-bottom: 1px solid var(--rule); }
+  .timeline .t {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    font-variant-numeric: tabular-nums; padding-top: 3px; white-space: nowrap;
+  }
+  .timeline .e { max-width: 66ch; }
+  .timeline .e .note { color: var(--muted); font-size: 13px; }
+
+  /* ---- callouts ---- */
+  .callout {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--warn); border-radius: 3px;
+    padding: 16px 18px; margin: 18px 0; max-width: 860px;
+  }
+  .callout.crit { border-left-color: var(--crit); }
+  .callout.info { border-left-color: var(--info); }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 6px;
+  }
+
+  /* ---- figure ---- */
+  figure { margin: 22px 0 24px; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 78ch; }
+
+  .box { fill: var(--surface); stroke: var(--rule); stroke-width: 1.2; }
+  .box-head { fill: var(--surface-2); stroke: var(--rule); stroke-width: 1.2; }
+  .box-a { stroke: var(--crit); }
+  .box-b { stroke: var(--ok); }
+  .flow { stroke: var(--muted); stroke-width: 1.3; fill: none; color: var(--muted); }
+  .lbl { font-family: var(--font-mono); font-size: 11.5px; fill: var(--fg); }
+  .lbl-sm { font-family: var(--font-mono); font-size: 10.5px; fill: var(--muted); }
+  .lbl-head { font-family: var(--font-sans); font-size: 12px; font-weight: 600; fill: var(--fg); }
+
+  /* ---- code ---- */
+  .code {
+    position: relative; background: var(--surface-2); border: 1px solid var(--rule);
+    border-radius: 3px; margin: 10px 0 18px; overflow: hidden;
+  }
+  .code pre {
+    margin: 0; padding: 14px 16px; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.65;
+    color: var(--fg); tab-size: 2;
+  }
+  .code button {
+    position: absolute; top: 7px; right: 7px;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 3px 7px; cursor: pointer;
+  }
+  .code button:hover { color: var(--fg); border-color: var(--muted); }
+  .code figcaption, .code-cap {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted); padding: 8px 16px 0;
+  }
+
+  /* ---- sources ---- */
+  .sources { list-style: none; padding: 0; margin: 8px 0 0; max-width: 900px; }
+  .sources li {
+    border-top: 1px solid var(--rule); padding: 9px 0; margin: 0;
+    display: grid; grid-template-columns: 1fr; gap: 2px;
+  }
+  .sources .src-title { font-weight: 500; }
+  .sources .src-meta { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .sources a { overflow-wrap: anywhere; }
+
+  footer {
+    margin-top: 54px; border-top: 1px solid var(--rule); padding-top: 16px;
+    font-size: 12.5px; color: var(--muted); max-width: 900px;
+  }
+
+  @media (max-width: 560px) {
+    .timeline li { grid-template-columns: 1fr; gap: 3px; }
+    .tile .v { font-size: 1.3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+<style>
+  /* ============================================================
+     Centered layout — typography only, no change to palette,
+     surfaces or component shapes.
+     ============================================================ */
+
+  /* ---- masthead ---- */
+  .masthead { text-align: center; }
+  .meta-row { justify-content: center; }
+  h1 { margin-inline: auto; }
+  .subtitle { margin-inline: auto; text-align: center; }
+
+  /* ---- section headings ---- */
+  section > .eyebrow,
+  section > h2,
+  section > h3 { text-align: center; }
+  section > h2::after {
+    content: ""; display: block; width: 36px; height: 2px;
+    margin: 14px auto 0; background: var(--rule);
+  }
+
+  /* ---- prose: centered column ---- */
+  section > p {
+    text-align: left;
+    text-align-last: auto;
+    hyphens: manual;
+    max-width: 66ch;
+    margin-inline: auto;
+    line-height: 1.75;
+  }
+  section > ul,
+  section > ol { max-width: 68ch; margin-inline: auto; }
+  section > ul:not(.timeline):not(.sources) > li,
+  section > ol > li { text-align: left; hyphens: manual; list-style-position: outside; }
+
+  /* ---- bottom line ---- */
+  .bluf {
+    text-align: left;
+    max-width: calc(66ch + 44px);
+    margin-inline: auto;
+  }
+  .bluf h2 { text-align: left; }
+  .bluf ol,
+  .bluf ul { max-width: none; margin-inline: 0; list-style-position: outside; }
+  .bluf li { text-align: left; hyphens: manual; }
+
+  /* ---- status board ---- */
+  .tile { text-align: left; }
+  .board + .subtle { text-align: left; }
+
+  /* ---- charts / figures ---- */
+  figure { margin-inline: auto; }
+  figure svg { max-width: 860px; margin: 0 auto; }
+  figcaption { text-align: center; margin-inline: auto; }
+
+  /* ---- callouts ---- */
+  .callout {
+    margin-inline: auto;
+    max-width: calc(66ch + 36px);
+  }
+  .callout .label { text-align: left; }
+  .callout p { text-align: left; text-align-last: auto; hyphens: manual; max-width: none; margin-inline: 0; }
+  .callout ul,
+  .callout ol { max-width: none; margin-inline: 0; list-style-position: outside; }
+  .callout li { text-align: left; hyphens: manual; }
+
+  /* Long unbreakable URLs inside justified prose stretch the whole line.
+     Letting them break is the lesser evil. */
+  section > p a,
+  .callout p a,
+  .bluf li a { overflow-wrap: anywhere; }
+
+  /* ---- code stays left-aligned, block centered ---- */
+  .code { max-width: 900px; margin-inline: auto; }
+  .code pre { text-align: left; }
+
+  /* ---- tables: block centered, cells left for scanability ---- */
+  .scroll { margin-inline: auto; }
+  th, td { text-align: left; }
+
+  /* ---- timeline: block centered, date/event columns intact ---- */
+  .timeline { margin-inline: auto; }
+  .timeline .e { text-align: left; }
+
+  /* ---- sources ---- */
+  .sources { margin-inline: auto; }
+  .sources li { text-align: left; }
+  .sources .src-meta { text-align: left; }
+
+  /* ---- footer ---- */
+  footer { text-align: center; margin-inline: auto; }
+  footer p { margin-inline: auto; }
+
+  @media (max-width: 640px) {
+    section > p { max-width: 100%; }
+    h1 { font-size: 1.85rem; line-height: 1.15; }
+    .subtitle { font-size: .98rem; }
+    /* narrow columns: justification produces large gaps and hyphenated code
+       tokens, so fall back to centered ragged text below 640px */
+    section > p,
+    .callout p {
+      text-align: left;
+      text-align-last: auto;
+      hyphens: manual;
+    }
+    section > ul > li,
+    section > ol > li,
+    .bluf li,
+    .callout li {
+      text-align: left;
+      hyphens: manual;
+    }
+  }
+  @media print {
+    .code pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="meta-row">
+      <span class="chip chip-crit">Critical · pre-patch</span>
+      <span class="chip chip-mute">TLP:CLEAR</span>
+      <span>Compiled 03:55 · revised 04:55 · 06:55 · 07:15 UTC</span>
+      <span>Patch scheduled 14:00 UTC · 7h out</span>
+    </div>
+    <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
+    <p class="subtitle">Pre-patch intelligence brief for SOC and threat hunting teams. Two critical PHP remote-code-execution flaws, an embargo that broke roughly 22 hours before the fix, and exploit code already in public circulation.</p>
+  </header>
+
+  <div class="bluf">
+    <h2>Bottom line</h2>
+    <ol>
+      <li><strong>Two PHP core RCEs, rated CVSS v4.0 9.2 each</strong> by the PHP security team. Fixed versions are reported as <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code>. None of that is confirmed by PHP yet — the advisory ships today at 14:00 UTC.</li>
+      <li><strong>No confirmed exploitation in the wild, no IOCs, not in CISA KEV.</strong> watchTowr and Huntress both report nothing observed as of this writing. That is a statement about their telemetry, not proof of absence.</li>
+      <li><strong>Exploit code is public, but the headline PoC is self-discounting.</strong> A 39.7 MB "lab weaponized" bundle has been downloadable since ~01:58 UTC and was <em>re-uploaded</em> at 03:24; 13 GitHub repositories now exist. The author's own ASAN build armed both cached pointers and <em>did not</em> fire a use-after-free — the crash needs a heap-groom stage the bundle does not demonstrate. The pre-patch exposure window is now ~15 hours old.</li>
+      <li><strong>The root cause is genuinely contested.</strong> Three incompatible technical models are circulating. One is a heap use-after-free requiring a per-build offset leak; another is a session state-machine chain that only reaches RCE through an application-level <code>include()</code>; a public php-src pull request matches one primitive exactly. Do not plan on the headline version.</li>
+      <li><strong>Act now on inventory, not on the exploit narrative.</strong> Patch internet-facing PHP at 14:00 UTC, treat PHP 8.1 and older as permanently exposed, and hunt on process lineage plus session-file content rather than on request signatures.</li>
+      <li><strong>There are no network IOCs. The IOC is a host artefact.</strong> Nothing connects to an external address — the only URL in the published bundle is a <code>https://host/x.php</code> placeholder. The durable signal is a session file containing <code>upload_progress_&lt;?php</code>. The published User-Agents and the <code>t[]</code> groom shape belong to one tool and change in seconds.</li>
+    </ol>
+  </div>
+
+  <div class="callout info" style="margin-top:22px;">
+    <span class="label">What changed since the 04:55 revision — measured 06:40–07:15 UTC</span>
+    <p><strong>The exploit bundle was replaced.</strong> The file served at 03:55 (39,767,660 B, mtime 01:57:54) is gone; the server now returns a different archive (39,765,851 B, mtime 03:24:49) with SHA-256 <code>0c254d54…0d63</code> — the value the page was advertising when we first looked. The page has since moved to a <em>third</em> checksum, <code>a29d640e…3017</code>, which matches nothing we can fetch. Page and artefact are being updated out of step.</p>
+    <p><strong>The author's own ASAN run is negative.</strong> The bundle now ships <code>VALIDATION.md</code> and <code>REPORT_VALIDATION.md</code>; section 7 reports the 258-byte trigger firing against an ASAN php 8.4.4 build, both cached pointers armed and written through, and <em>no heap-use-after-free observed</em>. The author attributes this to the missing heap-groom stage.</p>
+    <p><strong>We verified the source-line claims ourselves.</strong> Twelve line references in the bundle documentation were checked against php-src <code>PHP-8.4</code>; all twelve match, as do <code>php_session.h:136–137</code> and the <code>Z_TRY_ADDREF(progress-&gt;data)</code> at <code>session.c:3213</code>. The source description is accurate; the code-execution step is still only asserted.</p>
+    <p><strong>Unchanged:</strong> no CVE record at MITRE, nothing at NVD, not in KEV (catalog still 2026.10.20), no in-the-wild reporting, PR #22113 still open but not merged. <strong>New:</strong> a Red Hat tracking bug (Fedora, <code>NEW</code>, severity medium) and four more defensive repositories.</p>
+    <p><strong>07:15 UTC — the picture on "what works" is now much clearer.</strong> An independent audit reproduces the session-poisoning chain but <em>not</em> the UAF on 8.2.34, 8.4.4, 8.5.4 and 8.5.11, and shows the circulating demo's printed addresses match one exact Ubuntu package build (Δ<code>0xbe3f0</code>). We verified in source that the multipart bail path <em>does</em> fire the cleanup event, falsifying the "orphaned session file" primitive; <code>cleanup=0</code> is now a hard prerequisite. Indicators, artifact hashes and PoC status have their own section below.</p>
+  </div>
+
+  <section>
+    <p class="eyebrow">Status board</p>
+    <h2>What is measured, and what is only reported</h2>
+    <div class="board">
+      <div class="tile">
+        <div class="k">CVE count</div>
+        <div class="v">2</div>
+        <div class="n">9.2 CVSS v4.0 per PHP; 10.0 claimed in the original leak</div>
+      </div>
+      <div class="tile">
+        <div class="k">CVE records published</div>
+        <div class="v">0</div>
+        <div class="n">MITRE API returns <code>CVE_RECORD_DNE</code>; NVD returns 0 results · re-checked 06:40 UTC</div>
+      </div>
+      <div class="tile">
+        <div class="k">In CISA KEV</div>
+        <div class="v">No</div>
+        <div class="n">Catalog 2026.10.20, 1,754 entries · re-checked 06:40 UTC, unchanged</div>
+      </div>
+      <div class="tile">
+        <div class="k">Confirmed in-the-wild</div>
+        <div class="v">None</div>
+        <div class="n">watchTowr, Huntress and BleepingComputer all negative · re-checked 06:40 UTC</div>
+      </div>
+      <div class="tile">
+        <div class="k">Public exploit</div>
+        <div class="v">Yes</div>
+        <div class="n">Bundle re-uploaded 03:24 · 13 repos · advertised checksum still mismatched</div>
+      </div>
+      <div class="tile">
+        <div class="k">PHP hosts on Shodan</div>
+        <div class="v">1.89M</div>
+        <div class="n"><code>http.component:"php"</code> measured 03:52 UTC — host count, not site count</div>
+      </div>
+    </div>
+    <p class="subtle" style="font-size:13px; margin-top:4px;">Confidence labels used below: <span class="chip chip-ok">High</span> two independent sources or reproduced here · <span class="chip chip-warn">Medium</span> single strong source · <span class="chip chip-mute">Low</span> circumstantial · <span class="chip chip-crit">Unconfirmed</span> claim in circulation that nobody has validated.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Timeline</p>
+    <h2>How an embargo turned into a footrace</h2>
+    <p>The leak did not come from the researchers' own write-up. It started as an anonymous Hacker News post with no evidence attached, and the disclosure timetable moved within hours.</p>
+    <ul class="timeline">
+      <li>
+        <div class="t">20 Oct · 15:20 UTC</div>
+        <div class="e"><strong>"Tell HN" post by user <code>petecooper</code>.</strong> Claims two PHP RCEs at CVSS 10.0 affecting PHP 5 onward, names both CVE IDs, and gives a disclosure date of 22 October 18:00 CEST. The author labels his own sourcing "source: trust me, bro". The post is later removed. <span class="note">(<a href="https://news.ycombinator.com/item?id=50167754">Hacker News thread</a>, <a href="https://www.bleepingcomputer.com/news/security/php-warns-admins-of-two-critical-flaws-emergency-patches-coming-tomorrow/">BleepingComputer</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">20 Oct · 16:39 UTC</div>
+        <div class="e"><strong>Kevin Beaumont amplifies the leak.</strong> "Somebody has leaked CVE-2026-109618 and CVE-2026-109619 in PHP before the patch is out." 132 boosts, 123 favourites. <span class="note">(<a href="https://cyberplace.social/@GossiTheDog/117474220875882526">Mastodon</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">20 Oct · ~17:00 UTC</div>
+        <div class="e"><strong>watchTowr confirms the vulnerabilities are real</strong> and says it reproduced CVE-2026-109618, but withholds technical detail until patches ship. It explicitly does not claim discovery. <span class="note">(<a href="https://watchtowr.com/intelligence/php-cve-2026-109618-faq/">watchTowr FAQ</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">20 Oct · 19:45 UTC</div>
+        <div class="e"><strong>Fixed versions surfaced publicly.</strong> Beaumont posts <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code>, notes all other branches are end-of-life yet still vulnerable, and dates the flaws to "versions from 2004 onwards". <span class="chip chip-warn">Medium</span> — not vendor-confirmed. <span class="note">(<a href="https://cyberplace.social/@GossiTheDog/117474951442810591">Mastodon</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">20 Oct · 20:00 UTC</div>
+        <div class="e"><strong>@calif_io posts the "php2shell" claim on X</strong>, attaching a video thumbnail: "We have been coordinating with the PHP Foundation, OpenAI, and Wiz… More details will be released Wednesday, 21 October 2026 at 14:00 UTC." <span class="chip chip-crit">Unconfirmed</span> — the OpenAI and Wiz roles are this account's own claim and appear in no independent reporting. <span class="note">(<a href="https://dev-null.sh/@ahosker/commits/01a15ae6-b964-73ea-b005-63b03c7670f7">quoted here</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">20 Oct · 20:33 UTC</div>
+        <div class="e"><strong>CERT-EU publishes advisory 2026-018</strong>: no technical details available, recommends preparing to patch and considering isolating internet-facing applications. <span class="note">(<a href="https://cert.europa.eu/publications/security-advisories/2026-018">CERT-EU</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">21 Oct · 01:58 UTC</div>
+        <div class="e"><strong>The jackalsyn.com exploit bundle becomes downloadable</strong> — 39,767,660 bytes, "weaponized (lab)", with per-build debug-symbol deltas. <span class="note">(measured; <a href="https://jackalsyn.com/posts/php-up-2026.html">source page</a>)</span></div>
+      </li>
+      <li>
+        <div class="t">21 Oct · 03:06–03:46 UTC</div>
+        <div class="e"><strong>At least nine GitHub repositories appear</strong>, including one mirror of the bundle and one independent chain claiming to falsify it. <span class="note">(measured via GitHub API)</span></div>
+      </li>
+      <li>
+        <div class="t">21 Oct · 14:00 UTC</div>
+        <div class="e"><strong>PHP security release — scheduled, not yet shipped.</strong> Full details, affected versions and fixed versions are promised with the release. This is the only authoritative source for root cause and CVE mapping. <span class="note">(<a href="https://www.php.net/archive/2026.php">php.net archive</a>)</span></div>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <p class="eyebrow">Technical assessment</p>
+    <h2>Three competing models, none of them vendor-confirmed</h2>
+    <p>Every public description agrees the flaw is reachable through <code>multipart/form-data</code> against a PHP endpoint with <code>session.upload_progress</code> enabled — which is the default. Beyond that, the accounts diverge sharply, and the difference matters enormously to impact.</p>
+
+    <figure>
+      <svg viewBox="0 0 880 400" role="img" aria-label="Two competing exploit models for the PHP upload-progress flaw: a heap use-after-free requiring a per-build offset leak, versus a session state-machine chain requiring an application include sink.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect class="box box-head" x="250" y="14" width="380" height="58" rx="3"/>
+        <text class="lbl" x="440" y="38" text-anchor="middle">multipart/form-data POST</text>
+        <text class="lbl-sm" x="440" y="56" text-anchor="middle">any PHP endpoint · session.upload_progress=On</text>
+
+        <path class="flow" d="M 440 72 L 440 96" marker-end="url(#ar)"/>
+        <path class="flow" d="M 225 96 L 655 96"/>
+        <path class="flow" d="M 225 96 L 225 116" marker-end="url(#ar)" style="color:var(--muted)"/>
+        <path class="flow" d="M 655 96 L 655 116" marker-end="url(#ar)" style="color:var(--muted)"/>
+
+        <rect class="box box-head box-a" x="40" y="116" width="370" height="44" rx="3"/>
+        <text class="lbl-head" x="225" y="143" text-anchor="middle">Model A — heap use-after-free</text>
+
+        <rect class="box box-a" x="55" y="184" width="340" height="44" rx="3"/>
+        <text class="lbl" x="225" y="211" text-anchor="middle">two cached zval* bucket pointers</text>
+
+        <rect class="box box-a" x="55" y="244" width="340" height="44" rx="3"/>
+        <text class="lbl" x="225" y="271" text-anchor="middle">stale pointer → fake zend_fcall_info</text>
+
+        <rect class="box box-a" x="55" y="304" width="340" height="44" rx="3"/>
+        <text class="lbl" x="225" y="331" text-anchor="middle">zend_call_function → system()</text>
+
+        <path class="flow" d="M 225 228 L 225 240" marker-end="url(#ar)" style="color:var(--crit)"/>
+        <path class="flow" d="M 225 288 L 225 300" marker-end="url(#ar)" style="color:var(--crit)"/>
+
+        <text class="lbl-sm" x="225" y="374" text-anchor="middle">needs a per-build offset leak + heap grooming</text>
+        <text class="lbl-sm" x="225" y="390" text-anchor="middle">author self-labels it "weaponized (lab)"</text>
+
+        <rect class="box box-head box-b" x="470" y="116" width="370" height="44" rx="3"/>
+        <text class="lbl-head" x="655" y="143" text-anchor="middle">Model B — session state machine</text>
+
+        <rect class="box box-b" x="485" y="184" width="340" height="44" rx="3"/>
+        <text class="lbl" x="655" y="211" text-anchor="middle">P1 form-field PHPSESSID accepted</text>
+
+        <rect class="box box-b" x="485" y="244" width="340" height="44" rx="3"/>
+        <text class="lbl" x="655" y="271" text-anchor="middle">P2 progress key written verbatim to sess_&lt;id&gt;</text>
+
+        <rect class="box box-b" x="485" y="304" width="340" height="44" rx="3"/>
+        <text class="lbl" x="655" y="331" text-anchor="middle">P3 orphaned session file survives request</text>
+
+        <path class="flow" d="M 655 228 L 655 240" marker-end="url(#ar)" style="color:var(--ok)"/>
+        <path class="flow" d="M 655 288 L 655 300" marker-end="url(#ar)" style="color:var(--ok)"/>
+
+        <text class="lbl-sm" x="655" y="374" text-anchor="middle">reaches RCE only through an app include()/require()</text>
+        <text class="lbl-sm" x="655" y="390" text-anchor="middle">reproduced in a local Docker lab, not in the wild</text>
+      </svg>
+      <figcaption>Where the two public models diverge. Both start from the same default-enabled request path; they disagree on whether memory corruption is involved and on what the attacker still needs before getting code execution.</figcaption>
+    </figure>
+
+    <h3>Model A — heap use-after-free in the upload-progress callback</h3>
+    <p>Published by J4ck3LSyN (ATLAS) with research credits to Andrew Dorman and Arch&amp;Yuki, and mirrored by at least one GitHub repository. It claims <code>php_session_rfc1867_callback</code> caches two raw <code>zval *</code> bucket pointers (<code>post_bytes_processed</code>, <code>current_file_bytes_processed</code>) that are invalidated when the session tree is freed and rebuilt on a second progress update. The stale pointer is shaped into a fake <code>zend_fcall_info</code>, reaching <code>zend_call_function</code> and then <code>system()</code>.</p>
+    <p>Its own page undercuts the strongest reading: it requires a per-build offset leak between <code>zval_ptr_dtor</code> and <code>zend_call_function</code>, ships three vendor debug-symbol files to derive it, and describes itself as "weaponized (lab)". <span class="chip chip-crit">Unconfirmed</span> <span class="note subtle">(<a href="https://jackalsyn.com/posts/php-up-2026.html">source</a>)</span></p>
+
+    <h3>What the bundle's own validation says — and what we could verify</h3>
+    <p>The bundle now carries <code>VALIDATION.md</code>, <code>REPORT_VALIDATION.md</code>, <code>RATING.md</code> and <code>DELTAS_LSphp.md</code>. They describe two bugs (a stale read through <code>post_bytes_processed</code> and a stale store through <code>current_file_bytes_processed</code>) and cite exact source lines rather than prose. The document labels itself "conceptually validated … ASAN reproduction in progress"; the page's section 7 then reports that reproduction: the 258-byte multipart request reached the vulnerable path and armed both cached bucket pointers, but <strong>no ASAN heap-use-after-free fired</strong>. The author's explanation is that the freed chunk must first be reclaimed as an attacker-shaped 149-element packed array, and that grooming stage is not in the bundle.</p>
+    <p>We checked the source claims independently against the php-src <code>PHP-8.4</code> branch at 06:45 UTC. All twelve cited lines match what the tool describes — the two cached <code>zval *</code> fields at <code>php_session.h:136–137</code>, the <code>zend_hash_str_find</code> captures at <code>session.c:3316/3342</code>, the stores at <code>:3355/3356/3375</code>, the <code>zend_hash_update</code> at <code>:3214</code>, <code>min_freq</code> at <code>:953</code>, and <code>FILLUNIT 5120</code> at <code>rfc1867.c:184</code>. We also confirmed the disputed <code>Z_TRY_ADDREF(progress-&gt;data)</code> at <code>session.c:3213</code>, one line before that <code>zend_hash_update</code> — the addref the independent 04:38 audit says prevents the tree from being freed at all. <strong>Source reading: accurate. End-to-end exploitation: still not demonstrated by anyone.</strong></p>
+
+    <h3>Model B — session and multipart state-machine flaws</h3>
+    <p>A second repository documents five primitives verified against <code>php:8.4.4-cli</code> in a local Docker instance and explicitly states that Model A's "two-update UAF" is "mechanically falsified" — nothing in its chain touches a dangling pointer. Its primitives:</p>
+    <ul>
+      <li><strong>P1</strong> — a multipart form field named <code>PHPSESSID</code> is accepted before script resolution, creating <code>sess_&lt;attacker-chosen-id&gt;</code> even with <code>session.use_only_cookies=On</code> and no <code>Cookie</code> header.</li>
+      <li><strong>P2</strong> — the <code>PHP_SESSION_UPLOAD_PROGRESS</code> value is stored verbatim as a session key and re-serialized into the session file, so attacker-chosen content lands on disk.</li>
+      <li><strong>P3 — corrected at 07:00 UTC.</strong> The original claim was that exceeding <code>max_multipart_body_parts</code> skips the cleanup event, leaving the poisoned file behind. It does not: the bail path does <code>goto fileupload_done</code> (<code>rfc1867.c:797</code>) and <code>MULTIPART_EVENT_END</code> fires there unconditionally (<code>:1268–1273</code>). With stock <code>cleanup=1</code> the progress entry is therefore deleted and the session file ends up empty. The 19h repository has reached the same conclusion in its own README ("CORRECTED MODEL", <code>cleanup=0</code> → 556 B, <code>cleanup=1</code> → 0 B) while its report file still states the opposite. <strong>Treat <code>session.upload_progress.cleanup=0</code> as a hard prerequisite for this chain.</strong> Verified in source by us.</li>
+      <li><strong>P4/P5</strong> — session fixation with attacker-chosen values, and a silent write-denial when the marker contains <code>|</code>.</li>
+    </ul>
+    <p>RCE in this model needs an application-level code-execution sink — an <code>include()</code>/<code>require()</code> of a session-mapped path, or unserialization of attacker-controlled session values. That is a materially narrower claim than "unauthenticated RCE on any PHP host". <span class="chip chip-warn">Medium</span> — locally reproduced, not independently audited. <span class="note subtle">(<a href="https://github.com/19h/CVE-2026-109618">repository</a>)</span></p>
+
+    <h3>Model C — the missing cookie-only guard, already public since May</h3>
+    <p>php-src <a href="https://github.com/php/php-src/pull/22113">PR #22113</a>, opened 2026-05-21 and still open, adds exactly the guard Model B's P1 describes: <code>php_session_rfc1867_early_find_sid()</code> already honoured <code>use_only_cookies</code> for <code>$_GET</code>, but the form-field capture in <code>MULTIPART_EVENT_FORMDATA</code> had no such check. The pull request adds a four-line check and a <code>rfc1867_sid_post_use_only_cookies.phpt</code> test.</p>
+    <p>Its author wrote, in the pull request itself: "I don't know if this is a security fix." It has been reviewed and reworked but never merged. This predates the leak by five months and is the single strongest corroboration that at least one of the two flaws is a session-handling logic bug rather than memory corruption.</p>
+    <p class="note">Re-checked 06:41 UTC: still <code>open</code>, <code>merged: false</code>, last updated 2026-10-16, 9 comments and 2 review comments, head branch <code>jorgsowa:fix/session-upload-progress-use-only-cookies</code> targeting <code>PHP-8.4</code>. Unchanged since the leak — if this were the fix, it would have been merged by now.</p>
+
+    <div class="callout info">
+      <span class="label">Analytic inference — not a published finding</span>
+      <p>Two CVE identifiers for what several sources describe as one disclosure is easiest to explain as two distinct issues: one memory-safety bug and one session/multipart logic bug. Nothing public confirms that split, the mapping between IDs and issues is ambiguous in every circulating source, and the jackalsyn bundle never says which ID is which. Treat the pairing as unresolved until 14:00 UTC.</p>
+    </div>
+
+    <div class="callout crit">
+      <span class="label">What this means for your risk assessment</span>
+      <p>If Model A is correct, internet-facing PHP is directly exploitable and the 9.2 score is conservative. If Model B is correct, mass exploitation depends on how many applications include session paths — far fewer than "all PHP", but the session-fixation primitive alone is still a credential-theft problem on nearly every PHP application. Plan for the worse case, but do not tell leadership that every PHP server is a guaranteed shell.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Exploit availability</p>
+    <h2>Public exploit code is real, unaudited, and mislabeled</h2>
+    <p>This is the part that changes the operational picture. Exploit tooling is not theoretical here — it is downloadable, and it has been for hours.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Artefact</th><th class="tight">First seen (UTC)</th><th>What it contains</th><th>Assessment</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jackalsyn.com</code> bundle</td>
+            <td class="num">21 Oct 01:58<br>re-up 03:24</td>
+            <td>39.7 MB: framework, <code>poc0_109618.py</code>, <code>poc1_109619.py</code>, trigger, three LiteSpeed debug-symbol files, plus validation docs</td>
+            <td><span class="chip chip-crit">Unverified</span> re-uploaded; advertised checksum still does not match the served file</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/Zer061/CVE-2026-109618">Zer061/CVE-2026-109618</a></td>
+            <td class="num">21 Oct 03:06</td>
+            <td>Mirror of the bundle; README cites jackalsyn as source</td>
+            <td>Same content, same caveats</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/19h/CVE-2026-109618">19h/CVE-2026-109618</a></td>
+            <td class="num">21 Oct 03:22</td>
+            <td>Independent chain: driver, RCE chain, probe, payload snapshot, PHP error log</td>
+            <td>Claims Model A falsified; lab-only, needs an app sink</td>
+          </tr>
+          <tr>
+            <td>Icex0/php2shell-poc</td>
+            <td class="num">20 Oct 23:26</td>
+            <td>Empty repository</td>
+            <td>Placeholder — name-squatting</td>
+          </tr>
+          <tr>
+            <td>ovtechnology/php2shell-check</td>
+            <td class="num">21 Oct 00:52</td>
+            <td>Version/header auditor</td>
+            <td>Inventory tool, not an exploit</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/mikensec/php2shell-lab">mikensec/php2shell-lab</a></td>
+            <td class="num">21 Oct 03:36</td>
+            <td>Sealed Docker lab; ships no exploit, emits PCAP/strace/YARA inputs</td>
+            <td>Defensive — safe to use</td>
+          </tr>
+          <tr>
+            <td>FulcanelliR/PHP2Shell-Emergency-Patch</td>
+            <td class="num">21 Oct 03:46</td>
+            <td>Mitigation one-liner</td>
+            <td>Mitigation only</td>
+          </tr>
+          <tr>
+            <td>0ldbaby/php2shell</td>
+            <td class="num">21 Oct 03:31</td>
+            <td>46-byte README</td>
+            <td>Placeholder</td>
+          </tr>
+          <tr>
+            <td>Unkn0vv/php2shell</td>
+            <td class="num">—</td>
+            <td>Named by CVE aggregators; API returns 404</td>
+            <td>Private, renamed or removed</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout crit">
+      <span class="label">Integrity warning — the artefact has been swapped at least once</span>
+      <p>Three distinct values are now in play, and the advertised checksum has matched the served file at no point we could observe:</p>
+      <ul>
+        <li><strong>03:55 UTC</strong> — page advertised <code>0c254d54…0d63</code>; the server returned <code>d1ec08b7…ead1</code> (39,767,660 B, mtime 01:57:54). Two downloads agreed, so not transfer corruption.</li>
+        <li><strong>06:45 UTC</strong> — the server now returns <code>0c254d54…0d63</code> (39,765,851 B, mtime 03:24:49) — the archive the page described earlier. The old file is no longer served.</li>
+        <li><strong>06:45 UTC</strong> — the page now advertises <code>a29d640e…3017</code>, which matches neither the served archive nor anything we can fetch.</li>
+      </ul>
+      <p>That is a re-upload in progress rather than evidence of tampering, but it means <strong>no integrity claim about this bundle can be checked</strong>: the page and the artefact move independently, and every "signed release" claim sits behind plain HTTP. <strong>Do not run it.</strong> Trojanised PoCs for hyped CVEs are a known pattern.</p>
+    </div>
+
+    <div class="callout info">
+      <span class="label">Update 06:55 UTC — seven defensive repositories, four since 04:55</span>
+      <p>An independent audit published at 04:38 UTC ran the bundle's own two PoC bodies (62,929 B and 67,975 B) against ASAN builds of PHP 8.4.4 and 8.2.34: HTTP 200, no ASAN report, no command output, and a forged handler pointed at <code>0x4141414141414141</code> never faulted. It argues the UAF cannot fire because <code>Z_TRY_ADDREF(progress-&gt;data)</code> gives the array its own reference, and that deleting that one line reproduces the fault. This is consistent with the bundle's own "no ASAN heap-use-after-free fired" note and with the 19h analysis, and it independently arrived at the same tarball hash we measured. Treat it as a strong lead rather than a verdict: it is hours old, single-author, and the vendor patch remains the arbiter.</p>
+      <p>Also published since the first draft, both MIT-licensed and shareable: <code>syhunt/php2shell-protection</code> (Apache <code>.htaccess</code> test kit, deliberately ships no PoC) and <code>break-the-build/php-uploadprogress-waf</code> (ModSecurity, nginx and Suricata rules). Neither contains exploit code.</p>
+      <p>Four more appeared between 05:42 and 06:34 UTC, all defensive:</p>
+      <ul>
+        <li><a href="https://github.com/FacundoGimenez/php2shell-mitigation">FacundoGimenez/php2shell-mitigation</a> — exposure checks, and the honest warning that no confirmed workaround exists</li>
+        <li><a href="https://github.com/yetDevs/php2shell-triage">yetDevs/php2shell-triage</a> — estate inventory; notes the CVEs were still <code>RESERVED</code> at 02:40 UTC</li>
+        <li><a href="https://github.com/0xrsydn/php2shell-scan">0xrsydn/php2shell-scan</a> — reachability and change detector</li>
+        <li><code>edgarbaldemarmx/php2shell-remediation</code> — emergency mitigation</li>
+      </ul>
+      <p>None ships exploit code. The exploit mirror <code>Zer061/CVE-2026-109618</code> is now the most-visible artefact in the ecosystem at 11 stars and 10 forks, which is itself the operational risk: the copy people are finding first is the unaudited one.</p>
+    </div>
+
+    <p>Separately, watchTowr says it reproduced CVE-2026-109618 internally and is withholding detail until patches ship. That is a second, independent confirmation that the vulnerability is real — but it has not published a proof of concept, and should not be counted as a public exploit.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Indicators</p>
+    <h2>There are almost no IOCs — here is every one that exists</h2>
+    <p>Network indicators are what everyone asks for first and what does not exist yet. Checked at 07:00 UTC: ThreatFox, OTX pulses, URLhaus and PhishStats return <strong>zero</strong> for both CVE IDs and for "php2shell". Huntress's IOC table still reads "no indicators of compromise have been confirmed yet", and its Sigma/YARA publication is pending. What does exist is tool-level fingerprinting and host artefacts.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Indicator</th><th>Value</th><th>Type</th><th>Worth using?</th></tr></thead>
+        <tbody>
+          <tr><td>HTTP User-Agent</td><td><code>php2shell-109618</code> / <code>php2shell-109619</code></td><td>Network · tool-set</td><td><span class="chip chip-warn">Medium</span> hardcoded in the bundle; two-character edit defeats it</td></tr>
+          <tr><td>Response marker</td><td><code>JACKALPOC</code></td><td>Network · tool-set</td><td><span class="chip chip-warn">Medium</span> the bundle's own success test — useful retro-hunt, not detection</td></tr>
+          <tr><td>Payload marker</td><td><code>PWNED_JACKALSYN</code></td><td>Host · tool-set</td><td><span class="chip chip-warn">Medium</span> appears in session files written by this PoC only</td></tr>
+          <tr><td>Lab markers</td><td><code>RCE_OK 42</code>, <code>SHELL&gt;</code>, <code>PWNED_</code></td><td>Host · lab demos</td><td><span class="chip chip-mute">Low</span> author-chosen demo strings; an attacker picks their own</td></tr>
+          <tr><td>Session file content</td><td><code>upload_progress_&lt;?php …</code></td><td>Host · <strong>durable</strong></td><td><span class="chip chip-ok">High</span> the one artefact that survives request death — hunt this</td></tr>
+          <tr><td>Session file anomaly</td><td>546–559 B attacker-keyed <code>sess_*</code>, or 0 B while the app believes it wrote</td><td>Host</td><td><span class="chip chip-warn">Medium</span> the second is the silent write-denial primitive</td></tr>
+          <tr><td>Request shape</td><td>multipart POST carrying <code>name="PHP_SESSION_UPLOAD_PROGRESS"</code> <em>and</em> <code>name="PHPSESSID"</code></td><td>Network · behaviour</td><td><span class="chip chip-warn">Medium</span> Suricata sid 20260001; see caveat below</td></tr>
+          <tr><td>Groom shape</td><td>≥40–149 identical <code>name="t[]"</code> parts in one body</td><td>Network · tool-set</td><td><span class="chip chip-crit">Fragile</span> <code>t[]</code> is this bundle's naming choice, not a property of the attack</td></tr>
+          <tr><td>Build fingerprint</td><td>Δ<code>0xbe3f0</code> → <code>libapache2-mod-php8.5 8.5.4-0ubuntu1.3</code></td><td>Host · demo tool</td><td><span class="chip chip-ok">High</span> identifies what the circulating demo was run against — not attacker infrastructure</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">The request-shape rules come from <code>break-the-build/php-uploadprogress-waf</code> (Suricata, ModSecurity, nginx njs; content-only, no exploit code). Treat them as a net for opportunistic use of the published tooling. Anyone who reads the source renames <code>t[]</code> and the User-Agent in seconds — which is why the host side carries the durable signal.</p>
+
+    <h3>Artifact hashes — bundle as served 06:45 UTC</h3>
+    <p>Useful for detecting downloads or staging of this bundle. The outer tarball hash changes with each re-upload; the inner files have been stable across the builds we compared.</p>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>fc1ea7f905559c75bb9e48ebf477a9925d5df12acb7a0a5fa0be3e620675c724  bin/php_up_framework.py
+4e384bf3d62c5b153b0fd00896b0b7fc97a3fbc6ad0901c4354d54d90dfcbf3b  bin/poc_trigger.py
+dc672f10fb8489bf886be1f1d9c57e2cf4ba4074dc097a73f485dfd1b4116fec  bin/poc0_109618.py
+a919a09865ca4e947463da09cf6aca29b85ed4177152d761caa794609f7b08eb  bin/poc1_109619.py
+3232d5907c080162ee05aab73f77a3a934cfc22647773a7651a2f08a0fd46eb3  deltas/lsphp82-8.2.34-1-bookworm.zval.debug
+1b45b92df8b8802e3cad78a46dcc4043989497ce11d49f9f26f3d6c43371ad6d  deltas/lsphp82-8.2.34-1-jammy.zval.debug
+0ad6b96ca29ae2e19ec3cab8ac30cad8a6c3d6a6e04ff31fe148c0d74dddf8c1  deltas/lsphp82-8.2.34-1-noble.zval.debug
+72b2db97a4b55aae8327bb25683ebd083747e736035fcfff21240183bacce578  docs/DELTAS_LSphp.md
+58d0c4120a75fdf3cb09bcaf30636f9af4cb72adae5dd7f12d77e06de841df48  docs/RATING.md
+1c806af60510bf28146848cfc14f0af86ce98c339617295aba1d66e569f7046e  docs/README_FRAMEWORK.md
+86501720ed9bbcb211e54d8be8727605f59d977e5b0c8face3e723d2d3b7cd66  docs/REPORT_VALIDATION.md
+bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATION.md
+1917df05c735e2ebe3e5890790874d02b49bbec340b139bc6a03604bf14f811c  README.md</code></pre>
+      <div class="code-cap">SHA-256 · computed locally, files never executed</div>
+    </div>
+    <p class="note">No command-and-control address, domain or infrastructure is embedded in the bundle: the only URLs in it are a <code>https://host/x.php</code> placeholder and <code>127.0.0.1</code>. This tooling has no network footprint beyond the target itself.</p>
+
+    <h3>PoC status — what actually works</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>PoC</th><th>Claim</th><th>Verified outcome</th></tr></thead>
+        <tbody>
+          <tr><td>jackalsyn bundle <code>poc0</code>/<code>poc1</code> (62,929 B / 67,975 B)</td><td>Heap UAF → <code>system()</code></td><td><strong>Does not work.</strong> Reaches both stores, HTTP 200, no ASAN report, forged handler <code>0x4141…</code> never invoked, worker survives. Tested on 8.4.4 and 8.2.34.</td></tr>
+          <tr><td>Session poisoning → <code>include()</code></td><td>RCE via session file</td><td><strong>Works</strong>, with <code>cleanup=0</code>; with stock <code>cleanup=1</code> it needs a multi-worker race. Requires the victim app to include an attacker-influenced path.</td></tr>
+          <tr><td>BG(serialize) two-request PoC</td><td><code>php_add_var_hash()</code> UAF</td><td>OOM precondition reproduced on 8.5.4-0ubuntu1.3 (<code>memory_limit=8M</code>). ASAN UAF / SIGSEGV <strong>not</strong> reproduced — <code>USE_ZEND_ALLOC=0</code> disables <code>memory_limit</code>, so the ASAN build never takes the fatal path.</td></tr>
+          <tr><td>19h chain</td><td>"uid=0(root) via HTTP"</td><td>Lab-only and self-labelled as such; the chain ends at an <code>include()</code> sink shipped in the demo app. Its own README now contradicts its own report on cleanup (see correction below).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Exploitation status</p>
+    <h2>No confirmed activity in the wild — so far</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Question</th><th>Status</th><th>Basis</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Confirmed exploitation</td><td><span class="chip chip-ok">None</span></td><td>watchTowr ("no exploitation in the wild has been reported"), Huntress (none in partner telemetry), BleepingComputer</td></tr>
+          <tr><td>CISA KEV listing</td><td><span class="chip chip-ok">Not listed</span></td><td>Verified against catalog 2026.10.20 (1,754 entries) at 03:54 UTC</td></tr>
+          <tr><td>Shodan CVEDB</td><td><span class="chip chip-mute">No record</span></td><td>"CVE not found" for both identifiers</td></tr>
+          <tr><td>Public IOCs</td><td><span class="chip chip-ok">None</span></td><td>Huntress table still "none confirmed"; ThreatFox, OTX, URLhaus and PhishStats return zero for both IDs (checked 07:00 UTC)</td></tr>
+          <tr><td>Honeypot / sensor sightings</td><td><span class="chip chip-mute">None published</span></td><td>No public GreyNoise, Shadowserver or honeypot data for these identifiers</td></tr>
+          <tr><td>Threat-actor attribution</td><td><span class="chip chip-ok">None</span></td><td>"No attribution has been made public"</td></tr>
+          <tr><td>Mass-exploitation forecast</td><td><span class="chip chip-warn">Predicted</span></td><td>Sansec expects mass attacks "within 15 minutes" of release — a forecast, not an observation</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Read the negative honestly. These vendors see their own customer bases, not the internet. A two-vulnerability, pre-patch window with public tooling is precisely the situation where absence of reports is weakest: exploitation against a single target does not need to be loud, and the session-fixation primitive in Model B would look like ordinary authentication traffic in most telemetry.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">TTPs</p>
+    <h2>No adversary TTPs are confirmed</h2>
+    <p>Nothing here has been observed against a real target. The useful split is between what the published exploit code demonstrably does and what vendors suggest defenders look for. The first is evidenced by code and captured artefacts; the second is generic incident-response guidance that happens to be useful for hunting. A third category, what an attacker might do after gaining execution, has no evidence behind it at all, so it is recorded separately below rather than mixed in.</p>
+
+    <h3>Confirmed: behaviour implemented by the published exploit code</h3>
+    <p>Read from PoC source and the artefacts those authors captured. This is tool capability, not adversary behaviour. We did not execute either PoC, so "confirmed" means the code and the captured logs agree, not that we reproduced the chain.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Behaviour</th><th>Evidence</th><th>ATT&amp;CK</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Unauthenticated multipart POST reaches the vulnerable path</td><td>19h <code>exploit_driver.py</code>; jackalsyn delivery section</td><td class="num">T1190</td><td><span class="chip chip-ok">Capability</span></td></tr>
+          <tr><td>Session ID accepted from a form field, creating <code>sess_&lt;chosen-id&gt;</code></td><td>19h P1; matches php-src PR #22113</td><td>session fixation</td><td><span class="chip chip-ok">Corroborated</span></td></tr>
+          <tr><td>Attacker string written into the session file via the progress key</td><td>19h P2; <code>payload_snapshot.bin</code></td><td>n/a</td><td><span class="chip chip-ok">Corroborated</span></td></tr>
+          <tr><td>Command execution via <code>system()</code> once the file is included</td><td>19h <code>rce_chain.py</code>, <code>abort_poison.py</code>; jackalsyn <code>zend_call_function</code></td><td class="num">T1059.004</td><td><span class="chip chip-warn">Lab only</span></td></tr>
+          <tr><td>Deterministic path lets the attacker choose which file is included</td><td>19h P1 and R</td><td>n/a</td><td><span class="chip chip-warn">Lab only</span></td></tr>
+          <tr><td>Session fixation: victim app adopts the attacker-chosen sid</td><td>19h P4 transcript</td><td class="num">T1539</td><td><span class="chip chip-warn">Lab only</span></td></tr>
+          <tr><td>Session-write denial when the marker contains a pipe</td><td>19h P5 A/B matrix, 0 vs 546 bytes</td><td>availability</td><td><span class="chip chip-warn">Lab only</span></td></tr>
+          <tr><td>Host fingerprinting via injected payload (<code>md5_file</code> of <code>/etc/hostname</code>)</td><td><code>payload_snapshot.bin</code></td><td class="num">T1082</td><td><span class="chip chip-ok">Observed</span></td></tr>
+          <tr><td>Per-build offset extraction (<code>--syms</code>, <code>--dtor</code>) for the UAF path</td><td>jackalsyn CLI</td><td>n/a</td><td><span class="chip chip-crit">Claimed only</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Not confirmed: do not circulate these as TTPs</h3>
+    <p>These came from general incident-response guidance, not from this exploit. They are retained only as hunting hypotheses.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>ATT&amp;CK</th><th>Earlier claim</th><th>Why it does not hold</th></tr></thead>
+        <tbody>
+          <tr><td class="num">T1505.003</td><td>Web shell</td><td>No PoC installs a persistent component; the poisoned session file is ephemeral and depends on a cleanup setting</td></tr>
+          <tr><td class="num">T1059.003</td><td>Windows command shell</td><td>No PoC or report tests Windows PHP; <code>php-cgi.exe</code> appears only in generic vendor advice</td></tr>
+          <tr><td class="num">T1105</td><td>Ingress tool transfer</td><td>From "watch for curl/wget" hygiene guidance; no PoC performs it</td></tr>
+          <tr><td class="num">T1053.003</td><td>Cron persistence</td><td>Generic post-compromise checklist; no link to this exploit</td></tr>
+          <tr><td class="num">T1070.004</td><td>File deletion</td><td>Same</td></tr>
+          <tr><td class="num">T1033</td><td>User discovery</td><td>Generic recon command list; not observed</td></tr>
+          <tr><td>n/a</td><td>Mass exploitation within 15 minutes</td><td>Sansec forecast, not an observation</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <span class="label">Correction to this brief</span>
+      <p>The first version of this section listed nine ATT&amp;CK techniques as "expected". That was wrong in method: it merged exploit capability, generic vendor hunting advice and speculation into one table, and the ATT&amp;CK column implied adversary behaviour where none has been observed. The Windows and web-shell rows had no supporting evidence at all. Use the confirmed table above; treat the rest as hunting hypotheses only.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Procedure level</p>
+    <h2>What the tooling actually does, step by step</h2>
+    <p>Tactic and technique come from ATT&amp;CK; the procedure is the concrete implementation. Since no adversary has been observed, these are the procedures the published tools implement, with exact values taken from their source. The two models are different chains and are kept separate.</p>
+
+    <h3>Model B — the 19h chain</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Tactic</th><th>Technique</th><th>Procedure as implemented</th><th>Observable</th></tr></thead>
+        <tbody>
+          <tr><td class="num">B1</td><td>Reconnaissance</td><td class="num">T1595.002</td><td>Identify a PHP endpoint accepting multipart POST where <code>session.upload_progress</code> is enabled (the default). No probe code ships; implied by the lab.</td><td>multipart POSTs across endpoints</td></tr>
+          <tr><td class="num">B2</td><td>Preparation</td><td>—</td><td>Choose a session id matching the files-handler charset <code>[a-zA-Z0-9,-]</code>; know <code>session.save_path</code> so the on-disk path is predictable.</td><td>none on the wire</td></tr>
+          <tr><td class="num">B3</td><td>Initial Access</td><td class="num">T1190</td><td>One <code>POST /index.php</code>, <code>Content-Type: multipart/form-data; boundary=XRBOUNDARY</code>, <strong>no Cookie header</strong>, parts in order: <code>PHPSESSID</code>, <code>PHP_SESSION_UPLOAD_PROGRESS</code>, then 3 file parts. Five <code>Content-Disposition</code> parts trips <code>max_multipart_body_parts=4</code>.</td><td>multipart body carrying both field names with no session cookie</td></tr>
+          <tr><td class="num">B4</td><td>Persistence <em>(contested)</em></td><td>—</td><td>Needs <code>session.upload_progress.cleanup=0</code>. Stock <code>cleanup=1</code> deletes the entry; the report's claim that the bail path bypasses cleanup is falsified in source (<code>rfc1867.c:797</code> → <code>:1273</code>). Alternate route: overstate <code>Content-Length</code> by 65536, send 3×4096 B at 0.4 s intervals, set <code>SO_LINGER</code> to force RST.</td><td><code>sess_*</code> containing <code>upload_progress_</code></td></tr>
+          <tr><td class="num">B5</td><td>Execution</td><td class="num">T1059.004</td><td><code>POST /lfi_sink.php</code> with the payload in the filename field (<code>&lt;?php system("id"); ?&gt;</code>), then <code>GET /lfi_sink.php?page=/tmp/sessdata/sess_&lt;sid&gt;</code>.</td><td>include of a session path; <code>php-fpm</code> → shell child</td></tr>
+          <tr><td class="num">B6</td><td>Credential Access</td><td class="num">T1539</td><td>Victim hits <code>victim.php?login=1</code> with <code>Cookie: PHPSESSID=&lt;chosen&gt;</code>; the app writes <code>user=admin; role=superuser</code> into the attacker-known file; the attacker replays the sid. Technique mapping is imperfect — this is fixation, not cookie theft.</td><td>login succeeding on a session id the server never issued</td></tr>
+          <tr><td class="num">B7</td><td>Impact</td><td class="num">T1499</td><td>Send a marker containing a literal pipe; <code>php_session_encode()</code> returns NULL and the write is silently skipped, so state stops persisting for that id. Closest technique, not an exact fit.</td><td>0-byte <code>sess_&lt;sid&gt;</code> while the app believes it wrote</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Model A — the jackalsyn chain</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>#</th><th>Tactic</th><th>Technique</th><th>Procedure as documented</th><th>Observable</th></tr></thead>
+        <tbody>
+          <tr><td class="num">A1</td><td>Reconnaissance</td><td class="num">T1595.002</td><td>VALIDATE package: map target SAPI, PHP version and multipart surface (<code>--selftest</code>).</td><td>—</td></tr>
+          <tr><td class="num">A2</td><td>Preparation</td><td>—</td><td><code>--syms --binary &lt;lsphp&gt;</code> to extract the per-build delta between <code>zval_ptr_dtor</code> and <code>zend_call_function</code>. Shipped values: bookworm <code>0xc930</code>, noble <code>0xcef0</code>, jammy <code>0xd060</code>.</td><td>distro PHP package retrieval</td></tr>
+          <tr><td class="num">A3</td><td>Preparation</td><td>—</td><td><code>--build --bug 619 --dtor &lt;leak&gt; -o body.bin</code> for the stale-inner variant, or <code>--bug 618</code> for stale-outer.</td><td>—</td></tr>
+          <tr><td class="num">A4</td><td>Initial Access</td><td class="num">T1190</td><td>A single fast multipart POST arms both cached <code>zval*</code> buckets, then the socket is held past <code>session.upload_progress.min_freq</code> (default 1 s) so a second <code>update()</code> re-reads the session file.</td><td>connection held open over 1 s mid-upload</td></tr>
+          <tr><td class="num">A5</td><td>Execution</td><td class="num">T1059.004</td><td>Reclaim the freed bucket with attacker-shaped data: <code>zend_fcall_info</code> (64 B, <code>param_count</code> at +48), <code>zend_internal_function.handler</code> at +88, types <code>IS_STRING_EX 0x106</code> / <code>IS_OBJECT_EX 0x308</code>, reaching <code>zend_call_function</code> and then <code>system()</code>.</td><td>shell child of <code>php-fpm</code></td></tr>
+          <tr><td class="num">A6</td><td>Defense Evasion</td><td>—</td><td>Heap grooming so the freed bucket is reused; a wrong build delta crashes the worker rather than executing.</td><td><code>php-fpm</code> worker crashes or restarts</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="label">What is absent from every procedure</span>
+      <p>No command-and-control, no lateral movement, no exfiltration, no credential dumping, and no persistence beyond a session file. None of it appears in either PoC, so none of it belongs in a TTP briefing.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Detection and hunting</p>
+    <h2>Hunt the effect, not the request</h2>
+    <p>Request-level signatures are weak here. The exploit path is a well-formed multipart POST to a legitimate endpoint, TLS hides most of it, and the progress-field marker is trivially varied. What does not vary cheaply is what happens next: PHP spawning a shell, and PHP writing code into a session file.</p>
+
+    <h3>Signal 1 — process lineage (highest value)</h3>
+    <p>Any web-server user spawning a shell, a downloader, or an interpreter is worth a look. Expect this to be noisy in shared-hosting and control-panel estates; run it in observe mode first and baseline for a day.</p>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code># auditd / EDR equivalent — parent is a PHP SAPI
+(parent_process_name IN ("php-fpm","php-cgi","php-cgi.exe","httpd","apache2"))
+AND process_name IN ("sh","bash","dash","zsh","curl","wget","nc","ncat",
+                     "python","python3","perl","cmd.exe","powershell.exe","certutil.exe")</code></pre>
+      <div class="code-cap">Generic lineage predicate</div>
+    </div>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>DeviceProcessEvents
+| where InitiatingProcessFileName in~ ("php-fpm","php-cgi","php-cgi.exe","httpd","apache2")
+| where FileName in~ ("sh","bash","dash","curl","wget","nc","python","python3",
+                       "perl","cmd.exe","powershell.exe","certutil.exe")
+| project Timestamp, DeviceName, InitiatingProcessFileName, FileName, ProcessCommandLine</code></pre>
+      <div class="code-cap">Microsoft Defender XDR (KQL)</div>
+    </div>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>index=edr sourcetype=process
+  parent_process_name IN (php-fpm, php-cgi, httpd, apache2)
+  process_name IN (sh, bash, dash, curl, wget, nc, python, perl, cmd.exe, powershell.exe)
+| stats count min(_time) as first_seen by host, user, parent_process_name, process_name, process
+| where count &lt; 5</code></pre>
+      <div class="code-cap">Splunk (adapt field names to your TA)</div>
+    </div>
+
+    <h3>Signal 2 — PHP code inside a session file</h3>
+    <p>In Model B this is the durable artefact: a session file containing an <code>upload_progress_&lt;payload&gt;</code> key. It survives request death only when <code>session.upload_progress.cleanup=0</code> — the multipart parse bail still fires the cleanup event. This should be near-zero in a healthy estate, but legacy applications do occasionally store markup in sessions — baseline before alerting.</p>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code># find session files whose content contains a PHP open tag
+grep -rl --include='sess_*' '&lt;?php' /var/lib/php/sessions /tmp 2&gt;/dev/null
+
+# files owned by the web user, written in the last 24h
+find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code></pre>
+      <div class="code-cap">Host hunt — read-only</div>
+    </div>
+
+    <h3>Signal 3 — the in-band warning</h3>
+    <p>The lab reproduction produced a distinctive start-up warning class. If it appears at volume against one vhost, that is worth escalating:</p>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>PHP Request Startup: ... in Unknown on line 0</code></pre>
+      <div class="code-cap">Log string, lab-derived</div>
+    </div>
+
+    <h3>Signal 4 — request shape (only where TLS terminates)</h3>
+    <p>A multipart body carrying both a form field named <code>PHPSESSID</code> and a <code>PHP_SESSION_UPLOAD_PROGRESS</code> value containing <code>&lt;?php</code> is the shape to look for. Correlate with the absence of a session cookie, and with multipart bodies that abort or exceed the configured part limit.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Indicator</th><th>Why it matters</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td><code>PHPSESSID</code> as a multipart form field</td><td>Bypasses <code>use_only_cookies</code> (Model B P1; matches open PR #22113)</td><td><span class="chip chip-warn">Medium</span></td></tr>
+          <tr><td><code>PHP_SESSION_UPLOAD_PROGRESS</code> containing <code>&lt;?php</code></td><td>Direct payload carrier into the session file</td><td><span class="chip chip-warn">Medium</span></td></tr>
+          <tr><td>Multipart part count over <code>max_multipart_body_parts</code></td><td>A parse-bail shape — but the cleanup event still fires, so persistence depends on <code>cleanup=0</code>, not on the bail</td><td><span class="chip chip-warn">Medium</span></td></tr>
+          <tr><td>POST with no <code>Cookie</code> header yet session-scoped side effects</td><td>Cookie-less session creation</td><td><span class="chip chip-mute">Low</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info">
+      <span class="label">Honest limitation</span>
+      <p>All of the above is derived from lab write-ups and vendor guidance, not from observed intrusions. None of it has been validated against real adversary traffic, and none of it is a substitute for the vendor advisory landing at 14:00 UTC. Re-baseline the rules against the official root cause before promoting anything from observe to block.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Exposure</p>
+    <h2>How much PHP is actually out there</h2>
+    <p>Our own Shodan measurement at 03:52 UTC returned <strong>1,885,866 hosts</strong> with <code>http.component:"php"</code>. Top countries were the United States (512,387), Germany (123,412), Japan (96,853), Indonesia (89,341) and the Netherlands (63,371). Top networks were Amazon (162,488 + 109,144), DigitalOcean (51,937) and Hetzner (50,097).</p>
+    <p>That number counts hosts, and shared hosting means the number of affected <em>websites</em> is substantially higher. Mallory's measurement, which also breaks down by PHP branch, reports 1,495,986 version-reporting hosts of which 883,717 (59%) run 8.1 or earlier:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Branch</th><th class="num">Hosts</th><th>Fix available</th></tr></thead>
+        <tbody>
+          <tr><td>PHP 5.x</td><td class="num">368,570</td><td><span class="chip chip-crit">None — EOL</span></td></tr>
+          <tr><td>PHP 7.x</td><td class="num">329,358</td><td><span class="chip chip-crit">None — EOL</span></td></tr>
+          <tr><td>PHP 8.0</td><td class="num">78,955</td><td><span class="chip chip-crit">None — EOL</span></td></tr>
+          <tr><td>PHP 8.1</td><td class="num">106,834</td><td><span class="chip chip-crit">None — EOL</span></td></tr>
+          <tr><td>PHP 8.2</td><td class="num">224,681</td><td><span class="chip chip-ok">8.2.35</span></td></tr>
+          <tr><td>PHP 8.3</td><td class="num">241,736</td><td><span class="chip chip-ok">8.3.36</span></td></tr>
+          <tr><td>PHP 8.4</td><td class="num">84,389</td><td><span class="chip chip-ok">8.4.27</span></td></tr>
+          <tr><td>PHP 8.5</td><td class="num">61,463</td><td><span class="chip chip-ok">8.5.12</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="subtle" style="font-size:13px;">Per-branch figures are <a href="https://mallory.ai/blog/php-rce-rapid-response">Mallory's measurement</a>, reproduced as reported. We could not reproduce them directly: Shodan's version facet on <code>http.component:"php"</code> returns the web server's version, not PHP's. Treat the branch split as a vendor estimate and the 1.89M total as ours.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Action plan</p>
+    <h2>What to do before, at, and after 14:00 UTC</h2>
+
+    <h3>Now — the seven hours before the patch</h3>
+    <ol>
+      <li><strong>Inventory PHP by version and SAPI</strong>, not just by hostname. Include <code>php-fpm</code>, <code>mod_php</code>, <code>php-cgi</code>, appliances, cPanel/Plesk, and Windows software bundling <code>php-cgi.exe</code>. Record which branches are already end-of-life.</li>
+      <li><strong>Verify the effective configuration, not the file.</strong> <code>session.upload_progress</code> is typically on by default. On Debian/Ubuntu, CLI and FPM read different ini paths, and <code>.user.ini</code> is cached for minutes. Check via <code>phpinfo()</code> or the FPM binary and reload the pool.</li>
+      <li><strong>Pre-stage the patch.</strong> Confirm repository or mirror access for <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code> and test in staging. Distributions may backport rather than rebase — check your vendor's advisory separately.</li>
+      <li><strong>Enable the lineage detection in observe mode</strong> and baseline the session directory today, so tomorrow's alert has something to compare against.</li>
+      <li><strong>Do not run the circulating bundle.</strong> Hash mismatch, plain HTTP, and no independent audit.</li>
+      <li><strong>Consider OS-level containment while you wait.</strong> An AppArmor or SELinux profile that stops the PHP SAPI from executing binaries blunts both models whichever root cause turns out to be right — and it is the only control that covers EOL branches you cannot patch. It matters most for vendor appliances shipping PHP without a mandatory-access-control policy.</li>
+    </ol>
+
+    <h3>At 14:00 UTC — when the advisory lands</h3>
+    <ol>
+      <li><strong>Read the official advisory first</strong>, then correct every assumption in this brief: affected versions, fixed versions, root cause, and which CVE maps to which issue.</li>
+      <li><strong>Patch internet-facing first</strong>, then internal. Restart the correct SAPI — a package upgrade alone does not always reload a long-running FPM pool.</li>
+      <li><strong>Decide explicitly on EOL branches.</strong> PHP 8.1 and older get no fix. The option set is upgrade, isolate behind VPN or allowlist, or accept the risk in writing. Doing nothing is a decision; make it a documented one.</li>
+    </ol>
+
+    <h3>After — the retrospective hunt</h3>
+    <ol>
+      <li><strong>Hunt back to 20 October 15:20 UTC</strong>, when the identifiers became public, and to 21 October 01:58 UTC, when the bundle became downloadable.</li>
+      <li><strong>Check the two artefacts that survive:</strong> session files containing <code>&lt;?php</code>, and web-user processes spawning shells.</li>
+      <li><strong>Watch CISA KEV.</strong> A listing would convert every unpatched host from a priority into a deadline.</li>
+      <li><strong>Do not treat the <code>upload_progress</code> stopgap as protection.</strong> The sources now split three ways: the bundle author says it closes one of two paths; <code>break-the-build</code> says lab testing showed it closes the entire vulnerable path; GMO Flatt Security states it "mitigates only" and the attack remains possible, patch is the fix. Where vendors disagree about a free control, assume the pessimistic reading and patch.</li>
+    </ol>
+
+    <div class="callout">
+      <span class="label">If you can only do one thing today</span>
+      <p>Produce the list of internet-facing hosts running PHP 8.1 or earlier. That list is the part of your estate no patch will ever fix, and it is the part a mass-exploitation campaign would find first.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Confidence calibration</p>
+    <h2>Why this is not a high-confidence picture</h2>
+    <p>The project's standing rule is to state what is missing rather than round up. What follows separates the parts we would defend from the parts we would not.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Claim</th><th>Confidence</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Two CVEs exist and PHP rates them 9.2 CVSS v4.0</td><td><span class="chip chip-ok">High</span></td><td>PHP's own advance notice, CERT-EU, and multiple independent outlets</td></tr>
+          <tr><td>Release scheduled 21 Oct 14:00 UTC</td><td><span class="chip chip-ok">High</span></td><td>php.net archive; verified not yet shipped at 03:50 UTC</td></tr>
+          <tr><td>No confirmed exploitation as of 03:55 UTC</td><td><span class="chip chip-ok">High</span></td><td>watchTowr and Huntress independently; KEV checked directly</td></tr>
+          <tr><td>Exploit code is publicly available</td><td><span class="chip chip-ok">High</span></td><td>Downloaded and hashed it ourselves</td></tr>
+          <tr><td>Fixed versions 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35</td><td><span class="chip chip-warn">Medium</span></td><td>Single well-placed source (Beaumont); consistent with release cadence</td></tr>
+          <tr><td>Affected range is "PHP 5 onward" / "from 2004"</td><td><span class="chip chip-warn">Medium</span></td><td>Leak-derived, never vendor-confirmed</td></tr>
+          <tr><td>Root cause is a heap use-after-free</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Self-published; requires a per-build leak; contested by a second researcher; the author's own ASAN run did not fire</td></tr>
+          <tr><td>The cited php-src line numbers are real</td><td><span class="chip chip-ok">High</span></td><td>Twelve references re-checked by us against <code>PHP-8.4</code> at 06:45 UTC — all match</td></tr>
+          <tr><td>The bundle is being re-uploaded; no stable checksum</td><td><span class="chip chip-ok">High</span></td><td>Three hashes observed directly across two measurement windows</td></tr>
+          <tr><td>The published heap-UAF PoC does not achieve execution</td><td><span class="chip chip-ok">High</span></td><td>Two independent laboratory reproductions agree, and the author's own ASAN run is negative</td></tr>
+          <tr><td>Session poisoning reaches RCE only with an app <code>include()</code> sink and <code>cleanup=0</code></td><td><span class="chip chip-ok">High</span></td><td>Reproduced independently; it is a pre-existing technique, not a new mechanism</td></tr>
+          <tr><td>No network IOCs have been published</td><td><span class="chip chip-ok">High</span></td><td>Four feeds queried directly at 07:00 UTC, all zero — a statement about publication, not about attacks</td></tr>
+          <tr><td>Root cause is a session/multipart logic chain</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Lab-reproduced only; matches an open PR but that PR is not established as the fix</td></tr>
+          <tr><td>Which CVE is which issue</td><td><span class="chip chip-crit">Unknown</span></td><td>No source states the mapping</td></tr>
+          <tr><td>OpenAI and Wiz participated in coordination</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Single self-reported X post, reproduced nowhere else</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>What we could not verify</h3>
+    <ul>
+      <li><strong>The X posts themselves.</strong> x.com is login-walled from this environment; the @calif_io text is taken from a third-party quote, and the exploit video was not assessed.</li>
+      <li><strong>The bundle's integrity.</strong> Published hash does not match the served archive; we did not execute or extract it.</li>
+      <li><strong>Whether either mitigation closes both paths.</strong> Sources disagree, and no test is public.</li>
+      <li><strong>Whether the fixes actually address both CVEs.</strong> Only the advisory landing at 14:00 UTC will say.</li>
+      <li><strong>Exploitation telemetry beyond vendor customer bases.</strong> No honeypot or GreyNoise measurement was available to us for these identifiers.</li>
+    </ul>
+    <p>No PoC was executed and no active scanning was performed against any target in producing this brief.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Source register</p>
+    <h2>Everything this brief rests on</h2>
+    <ul class="sources">
+      <li><span class="src-title"><a href="https://www.php.net/archive/2026.php">PHP.net — Upcoming Critical PHP Security Release (20 Oct 2026)</a></span><span class="src-meta">Primary · official advance notice · 9.2 CVSS v4.0, 21 Oct 14:00 UTC</span></li>
+      <li><span class="src-title"><a href="https://cert.europa.eu/publications/security-advisories/2026-018">CERT-EU Security Advisory 2026-018</a></span><span class="src-meta">Primary · government CERT · no technical details, isolation guidance</span></li>
+      <li><span class="src-title"><a href="https://www.bleepingcomputer.com/news/security/php-warns-admins-of-two-critical-flaws-emergency-patches-coming-tomorrow/">BleepingComputer — PHP warns admins of two critical flaws</a></span><span class="src-meta">Reporting · leak timeline, watchTowr confirmation</span></li>
+      <li><span class="src-title"><a href="https://arstechnica.com/security/2026/10/php-maintainers-tell-web-devs-to-prepare-themselves-for-critical-security-patches/">Ars Technica — PHP plans emergency patches</a></span><span class="src-meta">Reporting · exposure estimates, PHP2Shell target list</span></li>
+      <li><span class="src-title"><a href="https://watchtowr.com/intelligence/php-cve-2026-109618-faq/">watchTowr — PHP RCE FAQ</a></span><span class="src-meta">Vendor · reproduced -109618, no ITW, not in KEV</span></li>
+      <li><span class="src-title"><a href="https://www.huntress.com/blog/php2shell-leaked-critical-php-vulnerabilities">Huntress — Rapid Response: php2shell</a></span><span class="src-meta">Vendor · no ITW in partner telemetry, process-lineage guidance</span></li>
+      <li><span class="src-title"><a href="https://sansec.io/research/php2shell">Sansec — Critical PHP RCE</a></span><span class="src-meta">Vendor · PHP2Shell screenshot, 15-minute exploitation forecast, mitigations</span></li>
+      <li><span class="src-title"><a href="https://mallory.ai/blog/php-rce-rapid-response">Mallory — PHP RCE in 8.5 and earlier</a></span><span class="src-meta">Analysis · per-branch exposure table, php-src commit review</span></li>
+      <li><span class="src-title"><a href="https://threatlandscape.io/blog/php-core-rce-cve-2026-109618-109619-leak-ahead-of-embargo">Threat Landscape — PHP core RCEs leak early</a></span><span class="src-meta">Reporting · corrected claims, watchTowr typo, credit status</span></li>
+      <li><span class="src-title"><a href="https://www.cyberkendra.com/2026/10/php-cve-2026-109618-cve-2026-109619-rce.html">CyberKendra — PHP CVE-2026-109618 / -109619 RCE</a></span><span class="src-meta">Reporting · 15:20 UTC leak timestamp, timeline</span></li>
+      <li><span class="src-title"><a href="https://news.ycombinator.com/item?id=50167754">Hacker News — Tell HN: 2x PHP RCE CVEs with CVSS 10.0 Incoming</a></span><span class="src-meta">Community · origin of the leak; comments are unverified claims</span></li>
+      <li><span class="src-title"><a href="https://cyberplace.social/@GossiTheDog/117474220875882526">Kevin Beaumont — leak post (20 Oct 16:39 UTC)</a></span><span class="src-meta">Social · exact text and engagement verified via Mastodon API</span></li>
+      <li><span class="src-title"><a href="https://cyberplace.social/@GossiTheDog/117474951442810591">Kevin Beaumont — fixed versions post (20 Oct 19:45 UTC)</a></span><span class="src-meta">Social · 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35, 2004 origin</span></li>
+      <li><span class="src-title"><a href="https://techhub.social/@cyberkendra/117475012794819561">CyberKendra — Mastodon amplification (20 Oct 20:00 UTC)</a></span><span class="src-meta">Social · exact text verified via API</span></li>
+      <li><span class="src-title"><a href="https://dev-null.sh/@ahosker/commits/01a15ae6-b964-73ea-b005-63b03c7670f7">@calif_io quote — third-party mirror of the X post</a></span><span class="src-meta">Social · coordination claim; original X post is login-walled</span></li>
+      <li><span class="src-title"><a href="https://jackalsyn.com/posts/php-up-2026.html">jackalsyn.com — PHP-UP-2026 (Model A, exploit bundle)</a></span><span class="src-meta">Self-published research · unverified, hash mismatch</span></li>
+      <li><span class="src-title"><a href="https://github.com/19h/CVE-2026-109618">19h/CVE-2026-109618 (Model B, lab-reproduced chain)</a></span><span class="src-meta">Self-published research · local Docker only, needs app sink</span></li>
+      <li><span class="src-title"><a href="https://github.com/php/php-src/pull/22113">php-src PR #22113 — prevent creation of fixed sid in php_session_rfc1867</a></span><span class="src-meta">Primary · open since 2026-05-21, matches Model B P1</span></li>
+      <li><span class="src-title"><a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">CISA KEV catalog</a></span><span class="src-meta">Primary · catalog 2026.10.20, 1,754 entries, neither CVE present</span></li>
+      <li><span class="src-title"><a href="https://thehackernews.com/2026/10/php2shell-two-unpatched-critical-php.html">The Hacker News — PHP2Shell: Two Unpatched Critical PHP RCE Flaws</a></span><span class="src-meta">Reporting · 403 from this environment, so read only via search summary — recorded as unexecuted, not verified</span></li>
+      <li><span class="src-title"><a href="https://bugzilla.redhat.com/show_bug.cgi?id=2556842">Red Hat Bugzilla 2556842 — CVE-2026-109618 &amp; CVE-2026-109619</a></span><span class="src-meta">Primary · Fedora tracking bug, status NEW, severity medium, last change 06:14 UTC 21 Oct</span></li>
+      <li><span class="src-title"><a href="https://github.com/Zer061/CVE-2026-109618/blob/main/VALIDATION.md">VALIDATION.md — bundle validation document (mirror)</a></span><span class="src-meta">Self-published · line-level claims, "conceptually validated", ASAN in progress</span></li>
+      <li><span class="src-title"><a href="https://github.com/php/php-src/tree/PHP-8.4">php-src <code>PHP-8.4</code> branch (our own verification)</a></span><span class="src-meta">Primary · twelve line references and <code>php_session.h:136–137</code> checked at 06:45 UTC; bail path at <code>rfc1867.c:797/1268–1273</code> checked at 07:05 UTC</span></li>
+      <li><span class="src-title"><a href="https://github.com/xuehuolll/CVE-2026-109618-109619-audit">xuehuolll/CVE-2026-109618-109619-audit — independent audit</a></span><span class="src-meta">Self-published · reproduces session poisoning, not the UAF; BG(serialize) OOM; demo-build fingerprint</span></li>
+      <li><span class="src-title"><a href="https://github.com/19h/CVE-2026-109618/blob/master/VERIFIED-EXPLOIT-REPORT.md">19h — Verified Exploitation Report (P1–P5)</a></span><span class="src-meta">Self-published · lab chain ending in a shipped <code>include()</code> sink; README contradicts report on cleanup</span></li>
+      <li><span class="src-title"><a href="https://github.com/break-the-build/php-uploadprogress-waf">break-the-build/php-uploadprogress-waf — detection rules</a></span><span class="src-meta">Defensive · Suricata sid 20260001–3, ModSecurity, nginx njs; no exploit code</span></li>
+      <li><span class="src-title"><a href="https://blog.flatt.tech/entry/php2shell">GMO Flatt Security — php2shell overview and guidance (JA)</a></span><span class="src-meta">Vendor · states <code>upload_progress</code> workaround mitigates only partly; patch is the fix; not part of the embargo</span></li>
+      <li><span class="src-title"><a href="https://rdintel.com/cve/CVE-2026-109618">RD Intelligence — CVE-2026-109618</a></span><span class="src-meta">Aggregator · unreliable; contains templated 2024 KEV artefacts</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>Compiled 2026-10-21 03:55 UTC, revised 04:55 and 06:55 UTC, from public sources and direct measurement. TLP:CLEAR — all underlying reporting is public. Every negative result and failed check in this document is deliberate: an unexecuted query is recorded as unknown, not as clean.</p>
+    <p>Re-validate this document against the official PHP advisory at 14:00 UTC. The technical section is expected to change.</p>
+  </footer>
+
+</div>
+
+<script>
+  document.querySelectorAll('button[data-copy]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = btn.parentElement.querySelector('pre');
+      var text = pre ? pre.innerText : '';
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {
+          var r = document.createRange();
+          r.selectNodeContents(pre);
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+        });
+      } else if (pre) {
+        var r2 = document.createRange();
+        r2.selectNodeContents(pre);
+        var s2 = window.getSelection();
+        s2.removeAllRanges();
+        s2.addRange(r2);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
