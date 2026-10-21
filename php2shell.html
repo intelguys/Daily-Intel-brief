@@ -272,6 +272,8 @@
      surfaces or component shapes.
      ============================================================ */
 
+  :root { --col: 38rem; }
+
   /* ---- masthead ---- */
   .masthead { text-align: center; }
   .meta-row { justify-content: center; }
@@ -279,12 +281,17 @@
   .subtitle { margin-inline: auto; text-align: center; }
 
   /* ---- section headings ---- */
+  /* eyebrow, section heading and body text share one left edge */
   section > .eyebrow,
   section > h2,
-  section > h3 { text-align: center; }
+  section > h3 {
+    text-align: left;
+    max-width: var(--col);
+    margin-inline: auto;
+  }
   section > h2::after {
     content: ""; display: block; width: 36px; height: 2px;
-    margin: 14px auto 0; background: var(--rule);
+    margin: 14px 0 0; background: var(--rule);
   }
 
   /* ---- prose: centered column ---- */
@@ -292,19 +299,19 @@
     text-align: left;
     text-align-last: auto;
     hyphens: manual;
-    max-width: 66ch;
+    max-width: var(--col);
     margin-inline: auto;
     line-height: 1.75;
   }
   section > ul,
-  section > ol { max-width: 68ch; margin-inline: auto; }
+  section > ol { max-width: var(--col); margin-inline: auto; }
   section > ul:not(.timeline):not(.sources) > li,
   section > ol > li { text-align: left; hyphens: manual; list-style-position: outside; }
 
   /* ---- bottom line ---- */
   .bluf {
     text-align: left;
-    max-width: calc(66ch + 44px);
+    max-width: calc(var(--col) + 44px);
     margin-inline: auto;
   }
   .bluf h2 { text-align: left; }
@@ -324,7 +331,7 @@
   /* ---- callouts ---- */
   .callout {
     margin-inline: auto;
-    max-width: calc(66ch + 36px);
+    max-width: calc(var(--col) + 36px);
   }
   .callout .label { text-align: left; }
   .callout p { text-align: left; text-align-last: auto; hyphens: manual; max-width: none; margin-inline: 0; }
