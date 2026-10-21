@@ -386,6 +386,10 @@
       hyphens: manual;
     }
   }
+  /* advisory tables: keep the identifier column from shredding */
+  table.adv td:first-child { min-width: 8.5rem; }
+  table.adv td:first-child code { white-space: nowrap; }
+  table.adv td:first-child .subtle { font-size: 11px; word-break: break-all; line-height: 1.45; }
   @media print {
     .code pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   }
@@ -397,26 +401,88 @@
 
   <header class="masthead">
     <div class="meta-row">
-      <span class="chip chip-crit">Critical · pre-patch</span>
+      <span class="chip chip-crit">Critical · patched</span>
       <span class="chip chip-mute">TLP:CLEAR</span>
-      <span>Compiled 03:55 · revised 04:55 · 06:55 · 07:15 · 09:10 · 13:35 UTC</span>
-      <span>Patch scheduled 14:00 UTC · 25m out</span>
+      <span>Compiled 03:55 · revised 04:55 · 06:55 · 07:15 · 09:10 · 13:35 · 14:05 UTC</span>
+      <span>Patches shipped 13:44 UTC</span>
     </div>
     <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
-    <p class="subtitle">Pre-patch intelligence brief for SOC and threat hunting teams. Two critical PHP remote-code-execution flaws, an embargo that broke roughly 22 hours before the fix, and exploit code already in public circulation.</p>
+    <p class="subtitle">Intelligence brief for SOC and threat hunting teams, re-validated against the advisory PHP published at 13:44 UTC. Two critical PHP remote-code-execution flaws, an embargo that broke roughly 22 hours early, and a public exploit narrative that was aimed at the wrong bug for most of a day.</p>
   </header>
 
   <div class="bluf">
     <h2>Bottom line</h2>
     <ol>
-      <li><strong>Two PHP core RCEs, rated CVSS v4.0 9.2 each</strong> by the PHP security team. Fixed versions are reported as <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code>. None of that is confirmed by PHP yet — the advisory ships today at 14:00 UTC.</li>
-      <li><strong>No confirmed exploitation in the wild, no IOCs, not in CISA KEV.</strong> watchTowr and Huntress both report nothing observed as of this writing. That is a statement about their telemetry, not proof of absence.</li>
-      <li><strong>Exploit code is public, but the headline PoC is self-discounting.</strong> A 39.7 MB "lab weaponized" bundle has been downloadable since ~01:58 UTC and was <em>re-uploaded</em> at 03:24; thirty-five GitHub repositories now exist, most of them defensive. The author's own ASAN build armed both cached pointers and <em>did not</em> fire a use-after-free — the crash needs a heap-groom stage the bundle does not demonstrate. The pre-patch exposure window is now ~17 hours old.</li>
-      <li><strong>The root cause is genuinely contested.</strong> Five incompatible technical models are circulating, the newest arriving at 13:35 UTC — and one of them is the leaker's own. One is a heap use-after-free requiring a per-build offset leak; another is a session state-machine chain that only reaches RCE through an application-level <code>include()</code>; a public php-src pull request matches one primitive exactly; the fourth moves the use-after-free into PHP's unserializer entirely. Do not plan on the headline version.</li>
-      <li><strong>Act now on inventory, not on the exploit narrative.</strong> Patch internet-facing PHP at 14:00 UTC, treat PHP 8.1 and older as permanently exposed, and hunt on process lineage plus session-file content rather than on request signatures.</li>
-      <li><strong>There are no network IOCs. The IOC is a host artefact.</strong> Nothing connects to an external address — the only URL in the published bundle is a <code>https://host/x.php</code> placeholder. The durable signal is a session file containing <code>upload_progress_&lt;?php</code>. The published User-Agents and the <code>t[]</code> groom shape belong to one tool and change in seconds.</li>
+      <li><strong>The advisory is out, ahead of schedule.</strong> PHP published at <strong>13:44 UTC</strong>, roughly sixteen minutes early, and shipped <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code> and <code>8.2.35</code> — exactly the versions Kevin Beaumont reported on 20 October. Minimal source backports also exist for <code>7.4</code>, <code>8.0</code> and <code>8.1</code>. PHP's own words: <em>"There are no complete mitigations, updating is the only safe choice."</em></li>
+      <li><strong>Both CVEs are bailout-state bugs, not session bugs.</strong> <span class="chip chip-ok">Confirmed</span> <code>CVE-2026-109618</code> (<a href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">GHSA-w8hw-w9fx-j79w</a>) is <em>RCE via OOM corruption</em>: PHP uses <code>longjmp()</code> to abort on out-of-memory, the early exit leaves request memory partially initialised, and shutdown then treats the invalid data as valid. <code>CVE-2026-109619</code> (<a href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">GHSA-6wmf-4rv5-p3rp</a>) is <em>RCE via stale global state</em>: a worker-global pointer survives into freed request memory and a later request uses it. The changelog names the shared fix: "Avoid state corruption via bailout".</li>
+      <li><strong>Every exploit narrative in circulation was aimed at the wrong bug.</strong> All five models this brief tracked — the cached-<code>zval*</code> session UAF, the session state-machine chain, php-src PR #22113, the <code>var_destroy</code> reentry, and the calif.io <code>Serializable</code> var_hash UAF — are now closed. <code>session.upload_progress</code> is a <strong>confirmed consumer</strong> of CVE-2026-109619, not its cause: the advisory lists it as one of the paths by which the stale state is reached. The bundle, the WAF rules and sixteen hours of analysis were pointed at a subsystem that turned out to be a delivery route.</li>
+      <li><strong>mod_php is the exposed surface, and it was exploited on default settings.</strong> The advisory says risk is "highest for mod_php, with a demonstrated exploit where an unauthenticated request can trigger the attack before any application code runs", validated over HTTP against a normal prefork configuration. FPM exits the child on the OOM path and no complete FPM exploit was demonstrated, though source analysis considers it susceptible; FrankenPHP is "likely susceptible" and LSAPI is modelled on FPM.</li>
+      <li><strong>The mitigation set is unusual — read it before applying standard hardening.</strong> <code>memory_limit=-1</code> is a mitigation here, and <code>RLIMIT_AS</code>/<code>RLIMIT_DATA</code> are explicitly <em>counter-indicated</em> because they can trigger the vulnerable allocation failure. See the action plan.</li>
+      <li><strong>Still no confirmed exploitation in the wild, no IOCs, not in KEV.</strong> Re-checked at 14:00 UTC: MITRE has no record, NVD returns 0, KEV is still catalog <code>2026.10.20</code> with 1,754 entries, ThreatFox returns nothing for both IDs. The one outlet claiming otherwise remains uncorroborated.</li>
+      <li><strong>There are still no network IOCs — but there is now a real host detector.</strong> The bundle's placeholder URLs and session-file artefacts only ever described one tool. The durable signal the advisory itself hands you is narrower and better: an <code>Allowed memory size of … bytes exhausted</code> fatal in a request that never reached application code.</li>
     </ol>
   </div>
+
+  <section>
+    <p class="eyebrow">Vendor advisory</p>
+    <h2>What PHP actually fixed, and what that retires</h2>
+    <p>The release landed at 13:44 UTC, roughly sixteen minutes ahead of the announced 14:00. The advanced notice promised "full details, affected versions, and the fixed versions"; it delivered, and the details are not what most of the circulating analysis predicted.</p>
+
+    <div class="scroll">
+      <table class="adv">
+        <thead><tr><th>CVE</th><th>Title, as published</th><th>Root cause in one line</th><th>CVSS v4.0</th><th>Confirmed traversal paths</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>2026-109618</code><br><span class="subtle">GHSA-w8hw-w9fx-j79w</span></td>
+            <td><strong>RCE via OOM corruption</strong></td>
+            <td>PHP uses <code>longjmp()</code> to abort on out-of-memory. The early exit can interrupt request startup while internal request data is only partly initialised, and request shutdown then treats that invalid data as valid.</td>
+            <td>9.2</td>
+            <td><code>mod_php</code> — confirmed over HTTP. FPM exits the child on startup failure but is "considered susceptible by source analysis"; FrankenPHP "likely"; LSAPI modelled on FPM.</td>
+          </tr>
+          <tr>
+            <td><code>2026-109619</code><br><span class="subtle">GHSA-6wmf-4rv5-p3rp</span></td>
+            <td><strong>RCE via stale global state</strong></td>
+            <td>Request-owned internal state survives after its backing memory is freed; a later request handled by the same worker uses that stale pointer before normal initialisation replaces it.</td>
+            <td>9.2</td>
+            <td>Session upload progress <em>(confirmed consumer)</em>; PHP 8.5 fatal-error backtraces with <code>fatal_error_backtraces</code> on; early INI diagnostics before request init.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Both advisories carry the same five weaknesses — CWE-416 (use after free), CWE-755, CWE-824 (access of uninitialised pointer), CWE-1325 and CWE-1419 — and the same vector: <code>CVSS:4.0/AV:N/AC:H/AT:P/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N</code>. Read <code>AC:H</code> and <code>AT:P</code> honestly: high attack complexity, and specific attack requirements present. The 9.2 describes impact once it works, not a single-packet exploit. Both advisories also state that a strategically crafted heap layout is what turns the primitive into code execution.</p>
+
+    <h3>The OOM triggers the advisory actually names</h3>
+    <ul>
+      <li>Multipart requests <strong>without a usable declared Content-Length</strong>.</li>
+      <li>An <strong>unrestricted number of multipart headers</strong>.</li>
+      <li><strong>Empty file controls</strong> that evade <code>max_file_uploads</code> while still creating metadata arrays — especially with nested field names.</li>
+    </ul>
+    <p>That list matters operationally: it is not a signature you can match on a User-Agent or a field name. It is three shapes of request that any large legitimate upload also produces. The discriminator is the <em>outcome</em> — a memory-exhaustion fatal during startup — not the request.</p>
+
+    <h3>What this does to the five models this brief tracked</h3>
+    <div class="scroll">
+      <table class="adv">
+        <thead><tr><th>Model</th><th>What it claimed</th><th>Verdict against the advisory</th></tr></thead>
+        <tbody>
+          <tr><td>A — cached <code>zval*</code> session UAF</td><td>Stale bucket pointers in <code>php_session_rfc1867_callback</code> → fake <code>zend_fcall_info</code> → <code>system()</code></td><td><span class="chip chip-crit">Retired</span> Not the mechanism, in either CVE. Its own author's ASAN run never fired, and two independent labs agreed.</td></tr>
+          <tr><td>B — session state machine</td><td>Cookie-less <code>PHPSESSID</code>, verbatim progress write, orphaned session file; RCE via app <code>include()</code></td><td><span class="chip chip-warn">Partly survives</span> <code>session.upload_progress</code> is a <em>confirmed consumer</em> of 109619 — but it is the road, not the engine. The logic bugs describe how you reach the stale state, not what frees it.</td></tr>
+          <tr><td>C — php-src PR #22113</td><td>The missing <code>use_only_cookies</code> guard is the bug</td><td><span class="chip chip-crit">Retired</span> Neither advisory references it. It remains a real, unmerged hardening change with no CVE behind it.</td></tr>
+          <tr><td>D — <code>var_destroy</code> reentry</td><td>Unlocked <code>i_zval_ptr_dtor</code> → inner <code>unserialize()</code> reuses freed parser state</td><td><span class="chip chip-crit">Retired</span> Source-confirmed as a defect, but not what these patches fix, and years old — which is why it was never a good fit.</td></tr>
+          <tr><td>E — calif.io <code>Serializable</code> var_hash UAF</td><td>Missing <code>BG(serialize_lock)++</code> in <code>zend_user_unserialize()</code></td><td><span class="chip chip-crit">Retired</span> Also source-confirmed and also not these CVEs. No CVE was ever assigned to it, and PHP's 2017 policy excludes <code>unserialize()</code> memory corruption from security releases. It should be treated as a separate, still-relevant issue.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout crit">
+      <span class="label">The uncomfortable finding</span>
+      <p>The public exploit ecosystem spent roughly twelve hours optimising against Model A — a use-after-free in the session handler — and the WAF rules, the scan tools and most of the 102 repositories are built on that reading. The actual bug is state corruption during a <em>bailout</em>, upstream of all of it. Anyone who deployed a rule matching <code>PHP_SESSION_UPLOAD_PROGRESS</code> plus <code>PHPSESSID</code> has a rule for one consumer of one of the two CVEs, and nothing for the other.</p>
+      <p>The session path is still worth blocking — the advisory confirms it — but it is one of several. That is precisely why the vendor says updating is the only complete answer.</p>
+    </div>
+
+    <h3>Credit — and what it resolves</h3>
+    <p>Reporters: <code>@lcfr-hax</code>, <code>@sagitzadik-wiz</code>, <code>@tomash-areion</code> and <code>@amyb-oai</code>. Remediation: <code>@arnaud-lb</code>, <code>@iluuu1994</code>, <code>@bukka</code> and <code>@ndossche</code>. The <code>-wiz</code> and <code>-oai</code> suffixes settle one thing this brief has carried as <span class="chip chip-crit">Unconfirmed</span> since 20 October: <code>@calif_io</code> claimed coordination with the PHP Foundation, OpenAI and Wiz. OpenAI and Wiz staff are indeed credited reporters. The institutional half of that claim checks out. <code>calif_io</code>'s own role still does not — it appears nowhere in the credit.</p>
+  </section>
 
   <div class="callout info" style="margin-top:22px;">
     <span class="label">What changed since the 04:55 revision — measured 06:40–07:15 UTC</span>
@@ -449,24 +515,29 @@
     <h2>What is measured, and what is only reported</h2>
     <div class="board">
       <div class="tile">
-        <div class="k">CVE count</div>
-        <div class="v">2</div>
-        <div class="n">9.2 CVSS v4.0 per PHP; 10.0 claimed in the original leak</div>
+        <div class="k">Vendor advisory</div>
+        <div class="v">Shipped</div>
+        <div class="n">13:44 UTC, ~16 min early · GHSA-w8hw-w9fx-j79w and GHSA-6wmf-4rv5-p3rp</div>
       </div>
       <div class="tile">
-        <div class="k">CVE records published</div>
+        <div class="k">Fixed versions</div>
+        <div class="v">4</div>
+        <div class="n"><code>8.5.12</code> · <code>8.4.27</code> · <code>8.3.36</code> · <code>8.2.35</code>, plus source backports for 7.4 / 8.0 / 8.1</div>
+      </div>
+      <div class="tile">
+        <div class="k">CVE records at MITRE / NVD</div>
         <div class="v">0</div>
-        <div class="n">MITRE API returns <code>CVE_RECORD_DNE</code>; NVD returns 0 results · re-checked 08:50 UTC</div>
+        <div class="n">Still <code>CVE_RECORD_DNE</code> and 0 results at 14:00 UTC — the GitHub advisories are the authoritative records</div>
       </div>
       <div class="tile">
         <div class="k">In CISA KEV</div>
         <div class="v">No</div>
-        <div class="n">Catalog 2026.10.20, 1,754 entries · re-checked 08:50 UTC, unchanged</div>
+        <div class="n">Catalog 2026.10.20, 1,754 entries · re-checked 14:00 UTC, unchanged</div>
       </div>
       <div class="tile">
         <div class="k">Confirmed in-the-wild</div>
         <div class="v">None</div>
-        <div class="n">watchTowr, Huntress, ACSC and BleepingComputer all negative · re-checked 08:55 UTC</div>
+        <div class="n">watchTowr, Huntress, ACSC and NCSC-NL all negative · re-checked 14:00 UTC</div>
       </div>
       <div class="tile">
         <div class="k">Public exploit</div>
@@ -528,8 +599,13 @@
 
   <section>
     <p class="eyebrow">Technical assessment</p>
-    <h2>Five competing models, none of them vendor-confirmed</h2>
-    <p>Every public description agrees the flaw is reachable through <code>multipart/form-data</code> against a PHP endpoint with <code>session.upload_progress</code> enabled — which is the default. Beyond that, the accounts diverge sharply, and the difference matters enormously to impact.</p>
+    <h2>Five competing models — all of them wrong</h2>
+    <div class="callout crit">
+      <span class="label">Read this before the models below</span>
+      <p>This section is retained as an audit trail of what the public believed between 03:55 and 13:44 UTC. <strong>Every model in it is now retired against the vendor advisory</strong>, which locates both CVEs in bailout and stale-state handling rather than in the session handler, the unserializer's destructor list, or <code>zend_user_unserialize()</code>. The resolution table in the advisory section above shows verdict by verdict.</p>
+      <p>It is kept for two reasons the project's rules require: failed hypotheses are evidence, and the reason five plausible models all pointed at the same subsystem is itself the operational lesson — <code>session.upload_progress</code> is a <em>consumer</em> of CVE-2026-109619, so every researcher who started from the leaked PoC and worked backwards from the session handler was led away from the bailout that actually frees the memory.</p>
+    </div>
+    <p>What follows is the pre-advisory state, unedited apart from this notice.</p>
 
     <figure>
       <svg viewBox="0 0 880 400" role="img" aria-label="Two competing exploit models for the PHP upload-progress flaw: a heap use-after-free requiring a per-build offset leak, versus a session state-machine chain requiring an application include sink.">
@@ -825,6 +901,11 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
         </tbody>
       </table>
     </div>
+    <div class="callout crit">
+      <span class="label">Every row above is now beside the point</span>
+      <p>None of these artefacts targets what PHP patched. Each was reverse-engineered from a leak, and the leak pointed at <code>session.upload_progress</code> — which the advisory identifies as a <em>consumer</em> of CVE-2026-109619, one of two issues. That is why two of the strongest-looking PoCs (the bundle and the 0x4148 lab) both plateau at "the vulnerable path was reached" and never crash: they are reaching a path whose actual fault requires an OOM bailout or a cross-request stale pointer that none of them constructs.</p>
+      <p>Two of them remain worth keeping in the lab, for different reasons. The session-poisoning chain is a real technique that predates these CVEs and still works against misconfigured applications. The calif.io <code>Serializable</code> UAF is a genuine, unpatchable-by-this-release defect with no CVE — the advisory does not address it, so it should be tracked separately.</p>
+    </div>
   </section>
 
   <section>
@@ -943,7 +1024,18 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
   <section>
     <p class="eyebrow">Detection and hunting</p>
     <h2>Hunt the effect, not the request</h2>
-    <p>Request-level signatures are weak here. The exploit path is a well-formed multipart POST to a legitimate endpoint, TLS hides most of it, and the progress-field marker is trivially varied. What does not vary cheaply is what happens next: PHP spawning a shell, and PHP writing code into a session file.</p>
+    <div class="callout info">
+      <span class="label">Updated 14:05 UTC — the advisory changes which signal is primary</span>
+      <p>Before the advisory, the best available detector was the session-file artefact written by one PoC. Now that CVE-2026-109618 is known to be an <strong>OOM bailout</strong>, there is a better one, and it is not a request signature at all: <strong>a memory-exhaustion fatal raised before application code runs</strong>. That is the precondition for the bailout that leaves request memory invalid.</p>
+      <p>The line to look for is the standard allocation failure, and the tell is its location — <code>in Unknown on line 0</code>, because no script has been compiled yet:</p>
+      <div class="code">
+        <button type="button" data-copy>Copy</button>
+        <pre><code>Allowed memory size of &lt;N&gt; bytes exhausted (tried to allocate &lt;M&gt; bytes) in Unknown on line 0</code></pre>
+        <div class="code-cap">Grep every PHP error log, FPM pool log and LiteSpeed STDERR sink for this shape</div>
+      </div>
+      <p>Two cautions. This fires on legitimate traffic too — a large upload against a tight <code>memory_limit</code> is exactly the benign case — so baseline it and alert on rate and clustering rather than on single events. And if you have already applied <code>memory_limit=-1</code> as a stopgap, you have blinded this signal: prefer the patched release over the stopgap precisely because the stopgap costs you your best detector.</p>
+    </div>
+    <p>Request-level signatures are weak here for a structural reason the advisory now makes explicit: the triggers are ordinary multipart shapes — no usable <code>Content-Length</code>, many headers, empty file controls with nested field names. TLS hides the body, and none of those shapes is anomalous on its own. What does not vary cheaply is what happens next: the OOM fatal, PHP spawning a shell, and PHP writing code into a session file.</p>
 
     <h3>Signal 1 — process lineage (highest value)</h3>
     <p>Any web-server user spawning a shell, a downloader, or an interpreter is worth a look. Expect this to be noisy in shared-hosting and control-panel estates; run it in observe mode first and baseline for a day.</p>
@@ -1039,67 +1131,81 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
 
   <section>
     <p class="eyebrow">Action plan</p>
-    <h2>What to do before, at, and after 14:00 UTC</h2>
+    <h2>What to do now that the patch is out</h2>
 
-    <h3>Now — the seven hours before the patch</h3>
+    <h3>Patch — there is nothing else that is complete</h3>
     <ol>
-      <li><strong>Inventory PHP by version and SAPI</strong>, not just by hostname. Include <code>php-fpm</code>, <code>mod_php</code>, <code>php-cgi</code>, appliances, cPanel/Plesk, and Windows software bundling <code>php-cgi.exe</code>. Record which branches are already end-of-life.</li>
-      <li><strong>Verify the effective configuration, not the file.</strong> <code>session.upload_progress</code> is typically on by default. On Debian/Ubuntu, CLI and FPM read different ini paths, and <code>.user.ini</code> is cached for minutes. Check via <code>phpinfo()</code> or the FPM binary and reload the pool.</li>
-      <li><strong>Pre-stage the patch.</strong> Confirm repository or mirror access for <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code>, <code>8.2.35</code> and test in staging. Distributions may backport rather than rebase — check your vendor's advisory separately.</li>
-      <li><strong>Enable the lineage detection in observe mode</strong> and baseline the session directory today, so tomorrow's alert has something to compare against.</li>
-      <li><strong>Do not run the circulating bundle.</strong> Hash mismatch, plain HTTP, and no independent audit.</li>
-      <li><strong>Consider OS-level containment while you wait.</strong> An AppArmor or SELinux profile that stops the PHP SAPI from executing binaries blunts both models whichever root cause turns out to be right — and it is the only control that covers EOL branches you cannot patch. It matters most for vendor appliances shipping PHP without a mandatory-access-control policy.</li>
+      <li><strong>Update to <code>8.5.12</code>, <code>8.4.27</code>, <code>8.3.36</code> or <code>8.2.35</code></strong>, internet-facing first. PHP's own line is unambiguous: <em>"There are no complete mitigations, updating is the only safe choice."</em></li>
+      <li><strong>Restart the SAPI, not just the package.</strong> A long-running FPM pool keeps its workers; the 109619 fix is a state reset per request, but the stale-state window is per worker. <code>pm.max_requests=1</code> is the blunt version if you cannot restart cleanly.</li>
+      <li><strong>Use the official backports for 7.4 / 8.0 / 8.1.</strong> PHP published minimal source backports precisely because those branches will never ship a release. If you depend on <code>rpms.remirepo.net</code>, note PHP's explicit warning that the repo will not have updates today — switch to distribution packages or build from source.</li>
+      <li><strong>Do not assume your vendor is ahead of you.</strong> Distributions and LTS vendors received patches in advance, but backport timing varies. Check each vendor rather than waiting for a mirror to catch up.</li>
     </ol>
 
-    <h3>At 14:00 UTC — when the advisory lands</h3>
-    <ol>
-      <li><strong>Read the official advisory first</strong>, then correct every assumption in this brief: affected versions, fixed versions, root cause, and which CVE maps to which issue.</li>
-      <li><strong>Patch internet-facing first</strong>, then internal. Restart the correct SAPI — a package upgrade alone does not always reload a long-running FPM pool.</li>
-      <li><strong>Decide explicitly on EOL branches.</strong> PHP 8.1 and older get no fix. The option set is upgrade, isolate behind VPN or allowlist, or accept the risk in writing. Doing nothing is a decision; make it a documented one.</li>
-    </ol>
+    <h3>If you cannot patch this hour — the vendor's own stopgaps</h3>
+    <p>These reduce exposure to specific paths. They do not make an installation safe, and PHP says so directly. Apply them in this order:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Control</th><th>Which CVE it addresses</th><th>The exact form that actually applies</th></tr></thead>
+        <tbody>
+          <tr><td><code>memory_limit=-1</code></td><td>109618</td><td>Set administratively so applications cannot override it — <code>php_admin_value</code> in the FPM pool or Apache config. Then check no pool, directory or app setting puts a finite limit back. Removes the controllable OOM, but a real allocation failure can still reach the path.</td></tr>
+          <tr><td>Low <code>post_max_size</code></td><td>109618</td><td><code>8M</code> where uploads are not needed, <code>32M</code> where they are. Keep <code>upload_max_filesize</code> below it.</td></tr>
+          <tr><td>Proxy-level request limits</td><td>109618</td><td>Cap decoded request size, input-field count, multipart part count, header count and nesting depth — and make them cover requests <em>without</em> a usable <code>Content-Length</code>.</td></tr>
+          <tr><td><code>session.upload_progress.enabled=0</code></td><td>109619</td><td>Via <code>php.ini</code>, FPM pool or server config, <strong>before request parsing</strong> — not <code>ini_set()</code>, not <code>.user.ini</code>. Then restart every worker. Blocks the confirmed session paths only.</td></tr>
+          <tr><td><code>fatal_error_backtraces=0</code></td><td>109619</td><td>PHP 8.5 only. Restart every worker. Blocks the confirmed backtrace path only.</td></tr>
+          <tr><td>Remove per-request invalid settings</td><td>109619</td><td>Any invalid or deprecated setting that emits a diagnostic before initialisation is a trigger. Hiding it with <code>error_reporting</code>, <code>display_errors</code> or <code>@</code> does <strong>not</strong> help.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout crit">
+      <span class="label">Two controls that will hurt you if applied on instinct</span>
+      <p><strong>Do not add <code>RLIMIT_AS</code> or <code>RLIMIT_DATA</code>.</strong> Both are standard hardening for runaway PHP processes and both are explicitly counter-indicated here — they can cause exactly the allocation failure that reaches the vulnerable <code>longjmp()</code> path. Use a container or cgroup limit as the availability boundary instead, with a policy that kills only the affected worker.</p>
+      <p><strong>Do not lead with the WAF rules.</strong> The rules circulating since 02:00 UTC match <code>PHP_SESSION_UPLOAD_PROGRESS</code> with <code>PHPSESSID</code> — one consumer of 109619. They do nothing about 109618, which is triggered by ordinary multipart shapes and has no distinguishing request signature at all.</p>
+    </div>
 
     <h3>After — the retrospective hunt</h3>
     <ol>
       <li><strong>Hunt back to 20 October 15:20 UTC</strong>, when the identifiers became public, and to 21 October 01:58 UTC, when the bundle became downloadable.</li>
       <li><strong>Check the two artefacts that survive:</strong> session files containing <code>&lt;?php</code>, and web-user processes spawning shells.</li>
       <li><strong>Watch CISA KEV.</strong> A listing would convert every unpatched host from a priority into a deadline.</li>
-      <li><strong>Do not treat the <code>upload_progress</code> stopgap as protection.</strong> The sources now split three ways: the bundle author says it closes one of two paths; <code>break-the-build</code> says lab testing showed it closes the entire vulnerable path; GMO Flatt Security states it "mitigates only" and the attack remains possible, patch is the fix. Where vendors disagree about a free control, assume the pessimistic reading and patch.</li>
+      <li><strong>The dispute about the <code>upload_progress</code> stopgap is now settled, and the pessimists were right.</strong> The bundle author said it closes one of two paths, <code>break-the-build</code> said lab testing closed the whole vulnerable path, GMO Flatt Security said it "mitigates only". The advisory sides with GMO Flatt: disabling it "blocks the confirmed session paths but not other variants". It is a partial control, not a fix.</li>
     </ol>
 
     <div class="callout">
       <span class="label">If you can only do one thing today</span>
-      <p>Produce the list of internet-facing hosts running PHP 8.1 or earlier. That list is the part of your estate no patch will ever fix, and it is the part a mass-exploitation campaign would find first.</p>
+      <p>Find every host where PHP runs under <strong><code>mod_php</code></strong>. That is the SAPI the advisory calls highest risk and the only one where a complete exploit was demonstrated over HTTP on default settings. FPM was not fully exploited, but it was not cleared either — source analysis calls it susceptible. If your estate is FPM-only, your urgency is real but your exposure is one step lower than a prefork <code>mod_php</code> shop's.</p>
     </div>
   </section>
 
   <section>
     <p class="eyebrow">Confidence calibration</p>
-    <h2>Why this is not a high-confidence picture</h2>
-    <p>The project's standing rule is to state what is missing rather than round up. What follows separates the parts we would defend from the parts we would not.</p>
+    <h2>What the advisory settled, and what it did not</h2>
+    <p>The project's standing rule is to state what is missing rather than round up. Until 13:44 UTC almost nothing in this brief was high-confidence, because the vendor had published nothing. That has changed for root cause, affected range and fixed versions — and has not changed at all for exploitation.</p>
     <div class="scroll">
       <table>
         <thead><tr><th>Claim</th><th>Confidence</th><th>Why</th></tr></thead>
         <tbody>
           <tr><td>Two CVEs exist and PHP rates them 9.2 CVSS v4.0</td><td><span class="chip chip-ok">High</span></td><td>PHP's own advance notice, CERT-EU, and multiple independent outlets</td></tr>
-          <tr><td>Release scheduled 21 Oct 14:00 UTC</td><td><span class="chip chip-ok">High</span></td><td>php.net archive; verified not yet shipped at 03:50 UTC</td></tr>
-          <tr><td>No confirmed exploitation as of 09:10 UTC</td><td><span class="chip chip-ok">High</span></td><td>watchTowr, Huntress and ACSC independently; KEV and Shodan CVEDB checked directly and unchanged for five hours</td></tr>
+          <tr><td>Release shipped 21 Oct, ahead of the 14:00 UTC schedule</td><td><span class="chip chip-ok">High</span></td><td>Observed directly on php.net at 13:44 UTC — five entries appeared, four releases and one advisory</td></tr>
+          <tr><td>No confirmed exploitation as of 14:00 UTC</td><td><span class="chip chip-ok">High</span></td><td>watchTowr, Huntress, ACSC and NCSC-NL independently; KEV and NVD checked directly at 14:00 UTC, both still empty</td></tr>
           <tr><td>Exploit code is publicly available</td><td><span class="chip chip-ok">High</span></td><td>Downloaded and hashed it ourselves</td></tr>
-          <tr><td>Fixed versions 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35</td><td><span class="chip chip-warn">Medium</span></td><td>Single well-placed source (Beaumont); consistent with release cadence</td></tr>
-          <tr><td>Affected range is "PHP 5 onward" / "from 2004"</td><td><span class="chip chip-warn">Medium</span></td><td>Leak-derived, never vendor-confirmed</td></tr>
-          <tr><td>Root cause is a heap use-after-free</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Self-published; requires a per-build leak; contested by a second researcher; the author's own ASAN run did not fire</td></tr>
+          <tr><td>Fixed versions 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35</td><td><span class="chip chip-ok">High</span></td><td><strong>Upgraded from Medium.</strong> Beaumont named all four on 20 Oct; PHP shipped exactly those four. The leak beat the vendor by twenty hours and was right.</td></tr>
+          <tr><td>Affected range is "PHP 5 onward" / "from 2004"</td><td><span class="chip chip-warn">Medium</span></td><td>Advisory states affected ranges only for the four supported branches. PHP backported to 7.4/8.0/8.1 but made no statement about 5.x/6.x.</td></tr>
+          <tr><td>Root cause is a heap use-after-free in the session callback</td><td><span class="chip chip-crit">Falsified</span></td><td>Neither advisory places the bug there. It was self-published, needed a per-build offset leak, and the author's own ASAN run never fired.</td></tr>
           <tr><td>The cited php-src line numbers are real</td><td><span class="chip chip-ok">High</span></td><td>Twelve references re-checked by us against <code>PHP-8.4</code> at 06:45 UTC — all match</td></tr>
           <tr><td>The bundle is being re-uploaded; no stable checksum</td><td><span class="chip chip-ok">High</span></td><td>Three hashes observed directly across two measurement windows</td></tr>
           <tr><td>The published heap-UAF PoC does not achieve execution</td><td><span class="chip chip-ok">High</span></td><td>Two independent laboratory reproductions agree, and the author's own ASAN run is negative</td></tr>
           <tr><td>Session poisoning reaches RCE only with an app <code>include()</code> sink and <code>cleanup=0</code></td><td><span class="chip chip-ok">High</span></td><td>Reproduced independently; it is a pre-existing technique, not a new mechanism</td></tr>
           <tr><td>No network IOCs have been published</td><td><span class="chip chip-ok">High</span></td><td>Four feeds queried directly at 07:00 UTC, all zero — a statement about publication, not about attacks</td></tr>
-          <tr><td>Root cause is a session/multipart logic chain</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Lab-reproduced only; matches an open PR but that PR is not established as the fix</td></tr>
-          <tr><td>Which CVE is which issue</td><td><span class="chip chip-crit">Unknown</span></td><td>No source states the mapping</td></tr>
+          <tr><td>Root cause of 109618 is OOM bailout corruption</td><td><span class="chip chip-ok">High</span></td><td>GHSA-w8hw-w9fx-j79w, and the 8.5.12 changelog entry "Avoid state corruption via bailout"</td></tr>
+          <tr><td>Root cause of 109619 is stale worker-global state</td><td><span class="chip chip-ok">High</span></td><td>GHSA-6wmf-4rv5-p3rp; <code>session.upload_progress</code> named as a confirmed consumer, not the cause</td></tr>
+          <tr><td>Which CVE is which issue</td><td><span class="chip chip-ok">Resolved</span></td><td>109618 = OOM corruption; 109619 = stale global state. Both advisories name their CVE explicitly.</td></tr>
           <tr><td>A heap-UAF exists in <code>var_destroy</code> on destructor reentry</td><td><span class="chip chip-ok">High</span></td><td>Read by us from <code>PHP-8.4</code>, <code>8.2</code> and <code>7.2</code>: the unlocked <code>i_zval_ptr_dtor</code> and the parser-state reuse branch are both real and long-standing</td></tr>
           <tr><td>That defect is one of these two CVEs, or yields pre-auth RCE</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>No vendor statement; the code predates the leak by years, every chain needs an application sink, and the escalation step is asserted rather than demonstrated</td></tr>
           <tr><td>A missing <code>serialize_lock</code> in <code>zend_user_unserialize()</code></td><td><span class="chip chip-ok">High</span></td><td>Verified by us in <code>PHP-8.4:442–461</code> and <code>PHP-8.2:438</code>; no increment anywhere in that file, unlike the <code>__wakeup</code>/<code>__unserialize</code> paths</td></tr>
           <tr><td>That bug is one of these two CVEs</td><td><span class="chip chip-crit">Unlikely</span></td><td>No CVE assigned by its authors; PHP's 2017 policy excludes <code>unserialize()</code> memory corruption from security releases</td></tr>
           <tr><td>watchTowr reproduced CVE-2026-109618</td><td><span class="chip chip-warn">Medium</span></td><td>Reporter-relayed statement from two outlets; watchTowr's own FAQ states no reproduction status and no PoC has been published</td></tr>
-          <tr><td>OpenAI and Wiz participated in coordination</td><td><span class="chip chip-crit">Unconfirmed</span></td><td>Single self-reported X post, reproduced nowhere else</td></tr>
+          <tr><td>OpenAI and Wiz participated in coordination</td><td><span class="chip chip-ok">Partly confirmed</span></td><td><code>@sagitzadik-wiz</code> and <code>@amyb-oai</code> are credited reporters. The institutional claim holds; <code>@calif_io</code>'s own role does not appear in the credit.</td></tr>
         </tbody>
       </table>
     </div>
@@ -1124,7 +1230,11 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
     <p class="eyebrow">Source register</p>
     <h2>Everything this brief rests on</h2>
     <ul class="sources">
-      <li><span class="src-title"><a href="https://www.php.net/archive/2026.php">PHP.net — Upcoming Critical PHP Security Release (20 Oct 2026)</a></span><span class="src-meta">Primary · official advance notice · 9.2 CVSS v4.0, 21 Oct 14:00 UTC</span></li>
+      <li><span class="src-title"><a href="https://www.php.net/archive/2026.php#2026-10-21-5">PHP.net — Security advisory: Critical remote code execution vulnerabilities, update now</a></span><span class="src-meta"><strong>Primary · the advisory itself · 13:44 UTC 21 Oct · fixed versions, both CVEs, full stopgap guidance</span></li>
+      <li><span class="src-title"><a href="https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w">GHSA-w8hw-w9fx-j79w — RCE via OOM corruption (CVE-2026-109618)</a></span><span class="src-meta">Primary · <code>longjmp()</code> on OOM leaves request memory invalid; triggers named; per-SAPI susceptibility; reporter and fixer credits</span></li>
+      <li><span class="src-title"><a href="https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp">GHSA-6wmf-4rv5-p3rp — RCE via stale global state (CVE-2026-109619)</a></span><span class="src-meta">Primary · worker-global pointer into freed request memory; session upload progress confirmed as a consumer</span></li>
+      <li><span class="src-title"><a href="https://www.php.net/ChangeLog-8.php#8.5.12">PHP 8.5.12 changelog</a></span><span class="src-meta">Primary · fix entry: "Fixed GHSA-w8hw-w9fx-j79w, GHSA-6wmf-4rv5-p3rp (Avoid state corruption via bailout)"</span></li>
+      <li><span class="src-title"><a href="https://www.php.net/archive/2026.php">PHP.net — Upcoming Critical PHP Security Release (20 Oct 2026)</a></span><span class="src-meta">Primary · advance notice, now superseded · 9.2 CVSS v4.0, 21 Oct 14:00 UTC</span></li>
       <li><span class="src-title"><a href="https://cert.europa.eu/publications/security-advisories/2026-018">CERT-EU Security Advisory 2026-018</a></span><span class="src-meta">Primary · government CERT · no technical details, isolation guidance</span></li>
       <li><span class="src-title"><a href="https://www.bleepingcomputer.com/news/security/php-warns-admins-of-two-critical-flaws-emergency-patches-coming-tomorrow/">BleepingComputer — PHP warns admins of two critical flaws</a></span><span class="src-meta">Reporting · leak timeline, watchTowr confirmation</span></li>
       <li><span class="src-title"><a href="https://arstechnica.com/security/2026/10/php-maintainers-tell-web-devs-to-prepare-themselves-for-critical-security-patches/">Ars Technica — PHP plans emergency patches</a></span><span class="src-meta">Reporting · exposure estimates, PHP2Shell target list</span></li>
@@ -1166,8 +1276,8 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
   </section>
 
   <footer>
-    <p>Compiled 2026-10-21 03:55 UTC, revised 04:55, 06:55, 07:15, 09:10 and 13:35 UTC, from public sources and direct measurement. TLP:CLEAR — all underlying reporting is public. Every negative result and failed check in this document is deliberate: an unexecuted query is recorded as unknown, not as clean.</p>
-    <p>Re-validate this document against the official PHP advisory at 14:00 UTC. The technical section is expected to change.</p>
+    <p>Compiled 2026-10-21 03:55 UTC, revised 04:55, 06:55, 07:15, 09:10, 13:35 and 14:05 UTC, from public sources and direct measurement. TLP:CLEAR — all underlying reporting is public. Every negative result and failed check in this document is deliberate: an unexecuted query is recorded as unknown, not as clean.</p>
+    <p>Re-validated against the official PHP advisory at 14:05 UTC; the technical section changed as promised, and every pre-advisory hypothesis in it is now marked retired rather than deleted. The revision log below the bottom line is preserved unedited as an audit trail — where it disagrees with the advisory section, the advisory section is correct.</p>
   </footer>
 
 </div>
