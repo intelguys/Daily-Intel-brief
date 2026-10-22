@@ -403,7 +403,7 @@
     <div class="meta-row">
       <span class="chip chip-crit">Critical · exploited</span>
       <span class="chip chip-mute">TLP:CLEAR</span>
-      <span>Compiled 21 Oct 03:55 · revised through 22 Oct 02:45 UTC</span>
+      <span>Compiled 21 Oct 03:55 · revised through 22 Oct; PoC population review added</span>
       <span>Patched 13:44 UTC · exploited in the wild at scale</span>
     </div>
     <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
@@ -966,6 +966,201 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
     </div>
 
     <p>Separately, watchTowr says it reproduced CVE-2026-109618 internally and is withholding detail until patches ship. That is a second, independent confirmation that the vulnerability is real — but it has not published a proof of concept, and should not be counted as a public exploit.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Exploit ecosystem &middot; scraped 2026-10-22</p>
+    <h2>Every public PoC, scraped and graded</h2>
+    <p>Six GitHub searches returned 1,175 rows, deduplicated to <strong>426 unique repositories</strong> &mdash; up from 379 in yesterday&rsquo;s count. <strong>Twenty-three were reviewed in depth</strong>; the rest are classified by description and topics only. Grading is against the CNA record, not against other repositories.</p>
+    <p>The decisive question for any PoC is whether it needs a <strong>pre-existing LFI or application sink</strong>. If it does, it is the decade-old <code>session.upload_progress</code> + LFI technique &mdash; an application bug that the engine&rsquo;s upload-progress feature makes convenient &mdash; and not these CVEs. MITRE&rsquo;s affected set is <span class="nw">8.2&ndash;8.5</span>, patched in 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Population measure</th><th class="num">Value</th><th>Population measure</th><th class="num">Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Unique repositories</td><td class="num">426</td><td>Classified defensive</td><td class="num">163</td></tr>
+          <tr><td>Created before the advisory</td><td class="num">108</td><td>Classified exploit-claiming</td><td class="num">67</td></tr>
+          <tr><td>Created after the advisory</td><td class="num">318</td><td>No description</td><td class="num">89</td></tr>
+          <tr><td>Pushed in the last 24 h</td><td class="num">391</td><td>Zero-star repositories</td><td class="num">269</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The graded set &mdash; 23 reviewed artefacts</h3>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Repository</th><th class="num">&#9733;</th><th>Claimed vector</th><th>Needs app sink</th><th>Grade</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/9bie/php2shell-bypass-aslr-exp">9bie/php2shell-bypass-aslr-exp</a></td>
+            <td class="num">639</td>
+            <td>OOM / stale state, PHP 8.4.26 + mod_php, single <code>exploit.py</code></td>
+            <td><strong>No</strong> &mdash; official image, 3/3</td>
+            <td><span class="chip chip-ok">Aligned</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/dinosn/php-cve-2026-10961x-lab-poc">dinosn/php-cve-2026-10961x-lab-poc</a></td>
+            <td class="num">64</td>
+            <td>Four-request chain, FPM stale <code>BG(unserialize)</code>, patch gaps on 8.5.12</td>
+            <td><strong>No</strong></td>
+            <td><span class="chip chip-ok">Aligned</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/xuehuolll/php2shell-CVE-2026-109618-109619">xuehuolll/&hellip;-109619</a></td>
+            <td class="num">17</td>
+            <td>Mechanics, working 8.4.x chain, post-patch status</td>
+            <td>No</td>
+            <td><span class="chip chip-ok">Aligned</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/ikow/php2shell-poc">ikow/php2shell-poc</a></td>
+            <td class="num">1134</td>
+            <td>Chains D/E match the advisory; Chain A is session + LFI</td>
+            <td>Both</td>
+            <td><span class="chip chip-warn">Partial</span> cites the real commit, overclaims elsewhere</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/murrez/php2shell">murrez/php2shell</a></td>
+            <td class="num">26</td>
+            <td>Passive fingerprint plus primitive tests</td>
+            <td>No</td>
+            <td><span class="chip chip-warn">Partial</span> &ldquo;banner match alone does not mean RCE&rdquo;</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/eness/php2shell-CVE-2026-109618-CVE-2026-109619-PoC">eness/&hellip;-PoC</a></td>
+            <td class="num">667</td>
+            <td>&ldquo;Heap UAF in session upload progress&rdquo;</td>
+            <td>LFI implied</td>
+            <td><span class="chip chip-crit">Mislabelled</span> retired Model A; ships an unofficial source patch</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/junaire/CVE-2026-109618-exploit">junaire/CVE-2026-109618-exploit</a></td>
+            <td class="num">97</td>
+            <td><code>session.upload_progress</code> chain, nginx + FPM</td>
+            <td>Yes</td>
+            <td><span class="chip chip-crit">Mislabelled</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/wakemeiflose/php2shell">wakemeiflose/php2shell</a></td>
+            <td class="num">54</td>
+            <td>Claims heap UAF, ships session + LFI; largest code body at 89 KB</td>
+            <td>Yes</td>
+            <td><span class="chip chip-crit">Mislabelled</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/syrex1013/php2shell">syrex1013/php2shell</a></td>
+            <td class="num">52</td>
+            <td>Session poison, log poison, FastCGI, PEAR webshell</td>
+            <td>Yes</td>
+            <td><span class="chip chip-crit">Mislabelled</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/Is4yev/php2shell-poc">Is4yev/php2shell-poc</a></td>
+            <td class="num">26</td>
+            <td>&ldquo;Heap UAF (crash + RCE framework)&rdquo;</td>
+            <td>Unstated</td>
+            <td><span class="chip chip-crit">Mislabelled</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/0x4148/CVE-2026-109618-php2shell-lab">0x4148/&hellip;-php2shell-lab</a></td>
+            <td class="num">19</td>
+            <td>Cached <code>rfc1867</code> pointers (Model A)</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-crit">Mislabelled</span> but self-candid: &ldquo;path reached, no execution&rdquo;</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/godylockz/cve-2026-109618-php2shell">godylockz/&hellip;-php2shell</a></td>
+            <td class="num">14</td>
+            <td>Heap leak + libphp leak + forged <code>pDestructor</code> &rarr; <code>zif_system</code></td>
+            <td>No</td>
+            <td><span class="chip chip-crit">Mislabelled</span> retired Model A</td>
+          </tr>
+          <tr>
+            <td><a href="https://git.kurosek.com/neko/php2shell">neko/php2shell</a> <span class="subtle">(Gitea)</span></td>
+            <td class="num">0</td>
+            <td>Session + LFI, plus &ldquo;three patch bypasses&rdquo;</td>
+            <td><strong>Yes, by construction</strong></td>
+            <td><span class="chip chip-crit">Mislabelled</span> &mdash; see below</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/openai/php2shell-checker">openai/php2shell-checker</a></td>
+            <td class="num">520</td>
+            <td>Version checker</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-info">Defensive</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/NCSC-NL/php2shell">NCSC-NL/php2shell</a></td>
+            <td class="num">136</td>
+            <td>CERT-EU operational information, TLP:CLEAR</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-info">Defensive</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/mikensec/php2shell-lab">mikensec/php2shell-lab</a></td>
+            <td class="num">21</td>
+            <td>Offline lab, emits YARA / Sigma / Suricata</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-info">Defensive</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/Zer061/CVE-2026-109618">Zer061/CVE-2026-109618</a></td>
+            <td class="num">57</td>
+            <td>Now a verbatim mirror of 9bie</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-mute">Mirror</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/lcfr-eth/CVE-2024-14027_slop">lcfr-eth/CVE-2024-14027_slop</a></td>
+            <td class="num">91</td>
+            <td>Personal research workspace, Solana donation address</td>
+            <td>&mdash;</td>
+            <td><span class="chip chip-warn">Low credibility</span></td>
+          </tr>
+          <tr>
+            <td>enactive-systems, iQingshan, KarimUD7, david-alvarez-rosa, scallydima</td>
+            <td class="num">15&ndash;32</td>
+            <td>Two-file PoCs and lab reductions</td>
+            <td>Unstated</td>
+            <td><span class="chip chip-mute">Unverified</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Four findings</h3>
+    <ul>
+      <li><strong>The most-copied claim in the ecosystem contradicts the CNA record.</strong> At least six reviewed repositories state that &ldquo;PHP 5.4.0 through 8.5.11&rdquo; is affected. MITRE&rsquo;s affected set is <span class="nw">8.2&ndash;8.5</span>. The 5.4 start describes the older session technique, not these CVEs &mdash; and it is being copied between READMEs without anyone checking it.</li>
+      <li><strong>Only three of 23 engage the advisory&rsquo;s mechanism.</strong> The other twenty implement or discuss the <code>session.upload_progress</code> + LFI path &mdash; the consumer route that public analysis converged on precisely because the leaked PoC exercised it.</li>
+      <li><strong>The two projects that got it right are the two that tested a real image.</strong> 9bie and dinosn each name an exact build and each state their constraint (<code>display_errors=1</code>). The high-star repositories that did not test publish confident version ranges instead.</li>
+      <li><strong>Star count is anti-correlated with accuracy here.</strong> The two most-starred artefacts (1,134 and 667) are a partial and a mislabelled one. The aligned projects sit at 639, 64 and 17.</li>
+    </ul>
+
+    <div class="callout crit">
+      <span class="label">The off-GitHub artefact &mdash; git.kurosek.com/neko/php2shell</span>
+      <p>Not in the GitHub population because it is a personal Gitea instance: one commit, created <strong>2026-10-21T16:38Z</strong>, zero stars, no licence. It advertises &ldquo;three confirmed bypass paths that defeat the official security patch&rdquo;.</p>
+      <p>Its own demo target is the tell. Both CVE directories ship the same &ldquo;vulnerable&rdquo; application:</p>
+      <div class="code">
+        <button type="button" data-copy>Copy</button>
+        <pre><code>session_start();
+if (isset($_GET['page'])) { include($_GET['page']); }</code></pre>
+        <div class="code-cap">The demo &ldquo;vulnerable&rdquo; target &mdash; identical in both CVE directories</div>
+      </div>
+      <p>That is an LFI by construction. Every script in the repository ends in &ldquo;include a file I control via the app&rsquo;s LFI&rdquo;. The three claimed bypasses &mdash; a TOCTOU window on the session file, an aborted upload via <code>RLIMIT_AS</code>, and reading PHP&rsquo;s upload temp file through <code>/proc/&lt;pid&gt;/fd</code> &mdash; are all LFI tricks that work on every PHP version and touch none of the patched code. Its own single negative result argues against its thesis: <em>&ldquo;Multipart part header flood: OOM triggered but the patch handles it correctly (exit code 70, session file cleaned up).&rdquo;</em></p>
+      <p><strong>Do not use it as a patch-verification tool.</strong> Run against a fully patched host that happens to have an LFI, it reports RCE &mdash; and the operator concludes the PHP fix is broken when their application is.</p>
+    </div>
+
+    <div class="callout info">
+      <span class="label">Safety scan &mdash; no trojanised PoC in the reviewed set</span>
+      <p>Primary exploit file fetched and scanned for each code-shipping repository. Every pattern hit resolved to a benign use: <code>subprocess.run</code> orchestrating <code>docker compose</code>, and target-directed payloads such as <code>eval($_REQUEST[1])</code> or <code>/etc/passwd</code> used as LFI paths. <strong>No outbound callback, no local credential access, no long encoded blob</strong> in any reviewed file. The kurosek repository is likewise stdlib-only, with no external endpoints.</p>
+      <p>Limit stated plainly: one file per repository, not a full audit. A repository shipping a clean primary file could still carry something elsewhere. The withdrawn <code>jackalsyn</code> bundle above remains the one artefact with an integrity history that cannot be checked, and the instruction there is unchanged.</p>
+    </div>
+
+    <p class="note">Denominator: 23 of 427 known artefacts (426 GitHub repositories plus one off-GitHub Gitea). The aligned / mislabelled split describes the reviewed set, not the whole population. Full method, per-repository raw READMEs and the scrape itself are retained in <code>poc-review/</code>, with the written addendum in <code>POC-REVIEW-2026-10-22.md</code>.</p>
   </section>
 
   <section>
