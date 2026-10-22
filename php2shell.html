@@ -403,7 +403,7 @@
     <div class="meta-row">
       <span class="chip chip-crit">Critical · exploited</span>
       <span class="chip chip-mute">TLP:CLEAR</span>
-      <span>Compiled 21 Oct 03:55 · revised through 22 Oct 02:00 UTC</span>
+      <span>Compiled 21 Oct 03:55 · revised through 22 Oct 02:45 UTC</span>
       <span>Patched 13:44 UTC · exploited in the wild at scale</span>
     </div>
     <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
@@ -419,7 +419,7 @@
       <li><strong>The session path the ecosystem built rules for is the one attackers are actually using</strong> &mdash; not because the leaked PoC was right about the root cause, but because <code>session.upload_progress</code> is the cheapest way to reach it. That partly reprieves the WAF rules deployed on 21 October, but only for 109619. Nothing in that rule set touches 109618.</li>
       <li><strong>An unconfirmed claim that the 8.5.12 fix is incomplete.</strong> A Fediverse post says the exploit &ldquo;still works on 8.5.12&rdquo;. Canonical reportedly asked php.org and was told it is &ldquo;unrelated and not a real issue&rdquo;. PHP has not answered publicly and no reproducer has been published. <span class="chip chip-crit">Unresolved</span> &mdash; do not act on it, but do not close the incident on patching alone either.</li>
       <li><strong>Discovery credit belongs to Wiz Research</strong>, not to the leaker: first bug found 19 August with AI assistance, reported 24 August, acknowledged 21 September, coordinated with PHP, Calif and OpenAI. This replaces the &ldquo;the leak was the finder&rdquo; reading this brief carried yesterday.</li>
-      <li><strong>There are still no network IOCs.</strong> Detection is behavioural, and the advisory hands you the best signal: a memory-exhaustion fatal, an oversized or malformed <code>PHPSESSID</code> response cookie, repeated 500s after OOM, and unexplained PHP worker churn.</li>
+      <li><strong>There are IOCs &mdash; and this brief was wrong to say there were none.</strong> Earlier revisions queried ThreatFox, OTX and URLhaus and saw zero; those feeds index malicious infrastructure, not attacking hosts seen by canaries. <a href="https://www.vulncheck.com/blog/php2shell-vulnerabilities">VulnCheck</a> published five addresses, four user-agents, a session ID, a multipart boundary and four SHA-256s; <a href="https://aws.amazon.com/blogs/security/amazon-threat-intelligence-identifies-php2shell-exploitation-prior-to-public-disclosure-in-madpot/">AWS MadPot</a> published six more, including an exploitation attempt on <strong>17 October, four days before disclosure</strong>. The indicator that matters most: <code>221.14.159.134</code> &mdash; the one host that actually tried to exploit &mdash; carries no reputation at all, on any instrument.</li>
       <li><strong>Not in CISA KEV</strong> &mdash; catalog <code>2026.10.21</code>, 1,754 entries, both CVEs absent, re-checked 02:00 UTC. MITRE and NVD both carry the records.</li>
     </ol>
   </div>
@@ -612,6 +612,20 @@
       </div>
       <p>Two cautions. This fires on legitimate traffic too — a large upload against a tight <code>memory_limit</code> is exactly the benign case — so baseline it and alert on rate and clustering rather than on single events. And if you have already applied <code>memory_limit=-1</code> as a stopgap, you have blinded this signal: prefer the patched release over the stopgap precisely because the stopgap costs you your best detector.</p>
     </div>
+
+    <h3>The request itself, for the CVE-2026-109618 chain</h3>
+    <p>Datadog reproduced the OOM chain and published the exact body shape. It is short and specific enough to match, and unlike a User-Agent it is dictated by the exploit&rsquo;s memory layout rather than by author taste:</p>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>=&lt;binary value&gt;&amp;a=1&amp;&lt;very long field name&gt;[x]=1</code></pre>
+      <div class="code-cap">application/x-www-form-urlencoded POST — empty-name field, binary value, then an oversized nested key</div>
+    </div>
+    <ul>
+      <li>An <strong>empty field name</strong> whose value contains raw NUL bytes — the groom payload.</li>
+      <li><code>a=1</code> — forces reuse of the freed 320-byte block.</li>
+      <li>A <strong>field name of roughly 3.5 MB</strong> ending in <code>[x]=1</code> — the allocation that exceeds <code>memory_limit</code> mid-initialisation.</li>
+    </ul>
+    <p>Corelight&rsquo;s open-source <a href="https://github.com/corelight/php2shell-detect">Zeek notices</a> encode the same idea behaviourally and are worth taking whole: <code>Large_Form_Key</code>, <code>Multipart_Header_Flood</code>, <code>Serialized_Integer_Overflow</code>, <code>Serialized_Integer_Collisions</code>, <code>Serialized_String_Collisions</code>, <code>Serialized_Duplicate_Array</code>, <code>Serialized_Object_Repetition</code>, <code>PHP_Crash_Sequence</code> and <code>Potentially_Affected_PHP_Version</code>. This is the detection set to deploy if you have HTTP visibility; it does not depend on any IOC and it does not depend on the session path.</p>
     <p>Request-level signatures are weak here for a structural reason the advisory now makes explicit: the triggers are ordinary multipart shapes — no usable <code>Content-Length</code>, many headers, empty file controls with nested field names. TLS hides the body, and none of those shapes is anomalous on its own. What does not vary cheaply is what happens next: the OOM fatal, PHP spawning a shell, and PHP writing code into a session file.</p>
 
     <h3>Signal 1 — process lineage (highest value)</h3>
@@ -756,71 +770,71 @@ find /var/lib/php/sessions -name 'sess_*' -mtime -1 -user www-data -type f</code
 
   <section>
     <p class="eyebrow">Indicators</p>
-    <h2>There are almost no IOCs — here is every one that exists</h2>
-    <p>Network indicators are what everyone asks for first and what does not exist yet. Re-checked at 02:00 UTC on 22 October &mdash; after a full day of confirmed exploitation at scale &mdash; ThreatFox, OTX and URLhaus still return <strong>nothing</strong> for both CVE IDs and for &ldquo;php2shell&rdquo;. Wiz publishes behavioural signals and no indicators; the NSA advisory was not retrievable from this network. What does exist is tool-level fingerprinting and host artefacts, plus two signals the exploit itself produces.</p>
+    <h2>IOCs exist &mdash; in honeypot telemetry, not in threat feeds</h2>
+    <div class="callout crit">
+      <span class="label">Correction to every earlier revision of this brief</span>
+      <p>This section previously said there were no IOCs. <strong>That was wrong</strong>, and the reason it was wrong is worth keeping: we queried threat-intelligence <em>feeds</em> &mdash; ThreatFox, OTX, URLhaus &mdash; and they returned zero, because they index malicious infrastructure and published blocklists. They do not index <em>attacking hosts observed by canary and honeypot operators</em>. Two such operators published concrete indicators on 21 October: <a href="https://www.vulncheck.com/blog/php2shell-vulnerabilities">VulnCheck Canary</a> and <a href="https://aws.amazon.com/blogs/security/amazon-threat-intelligence-identifies-php2shell-exploitation-prior-to-public-disclosure-in-madpot/">Amazon Threat Intelligence (MadPot)</a>. Both re-checked at 02:30 UTC: ThreatFox still returns <code>no_result</code> for the addresses as well as for the CVE IDs &mdash; the feeds have nothing on these hosts either.</p>
+      <p>The lesson: <strong>&ldquo;no IOCs&rdquo; from four feeds is a statement about four feeds.</strong> A negative in a blocklist aggregator says nothing about whether anyone has published an attacking host.</p>
+    </div>
+
+    <h3>Network indicators &mdash; two independent published sets, eleven addresses</h3>
+    <p>GreyNoise column measured directly by us at 02:35 UTC on 22 October via the community API, and it is the most useful column here: it separates the mass scanners from the operators who actually tried to exploit.</p>
     <div class="scroll">
-      <table>
-        <thead><tr><th>Indicator</th><th>Value</th><th>Type</th><th>Worth using?</th></tr></thead>
+      <table class="adv">
+        <thead><tr><th>Address</th><th>ASN / owner</th><th>Published by</th><th>Observed</th><th>What it did</th><th>GreyNoise</th></tr></thead>
         <tbody>
-          <tr><td>HTTP User-Agent</td><td><code>php2shell-109618</code> / <code>php2shell-109619</code></td><td>Network · tool-set</td><td><span class="chip chip-warn">Medium</span> hardcoded in the bundle; two-character edit defeats it</td></tr>
-          <tr><td>Response marker</td><td><code>JACKALPOC</code></td><td>Network · tool-set</td><td><span class="chip chip-warn">Medium</span> the bundle's own success test — useful retro-hunt, not detection</td></tr>
-          <tr><td>Payload marker</td><td><code>PWNED_JACKALSYN</code></td><td>Host · tool-set</td><td><span class="chip chip-warn">Medium</span> appears in session files written by this PoC only</td></tr>
-          <tr><td>Lab markers</td><td><code>RCE_OK 42</code>, <code>SHELL&gt;</code>, <code>PWNED_</code></td><td>Host · lab demos</td><td><span class="chip chip-mute">Low</span> author-chosen demo strings; an attacker picks their own</td></tr>
-          <tr><td>Response cookie</td><td>Oversized or malformed <code>PHPSESSID</code> set by the <em>server</em></td><td>Network &middot; <strong>durable</strong></td><td><span class="chip chip-ok">High</span> Wiz: stale <code>PS(id)</code> is URL-encoded into a <code>PHPSESSID</code> cookie &mdash; a leaking cookie is the memory-disclosure primitive working</td></tr>
-          <tr><td>Log sequence</td><td>Memory-limit fatal, then repeated HTTP 500s, then worker churn</td><td>Host &middot; <strong>durable</strong></td><td><span class="chip chip-ok">High</span> Wiz names exactly this sequence; it is the bailout, seen from outside</td></tr>
-          <tr><td>Session file content</td><td><code>upload_progress_&lt;?php …</code></td><td>Host · <strong>durable</strong></td><td><span class="chip chip-ok">High</span> the one artefact that survives request death — hunt this</td></tr>
-          <tr><td>Session file anomaly</td><td>546–559 B attacker-keyed <code>sess_*</code>, or 0 B while the app believes it wrote</td><td>Host</td><td><span class="chip chip-warn">Medium</span> the second is the silent write-denial primitive</td></tr>
-          <tr><td>Request shape</td><td>multipart POST carrying <code>name="PHP_SESSION_UPLOAD_PROGRESS"</code> <em>and</em> <code>name="PHPSESSID"</code></td><td>Network · behaviour</td><td><span class="chip chip-warn">Medium</span> Suricata sid 20260001; see caveat below</td></tr>
-          <tr><td>Groom shape</td><td>≥40–149 identical <code>name="t[]"</code> parts in one body</td><td>Network · tool-set</td><td><span class="chip chip-crit">Fragile</span> <code>t[]</code> is this bundle's naming choice, not a property of the attack</td></tr>
-          <tr><td>Build fingerprint</td><td>Δ<code>0xbe3f0</code> → <code>libapache2-mod-php8.5 8.5.4-0ubuntu1.3</code></td><td>Host · demo tool</td><td><span class="chip chip-ok">High</span> identifies what the circulating demo was run against — not attacker infrastructure</td></tr>
+          <tr><td><code>85.11.167.243</code></td><td>AS209630 TechTies, NL</td><td>VulnCheck</td><td>21 Oct 08:37&ndash;10:46</td><td>Multipart <code>POST /index.php</code> with UA <code>php2shell-scan/109618</code> against 9 hosts, then a 58-host <code>GET /</code> sweep rotating four browser UAs. Reached 188 canaries.</td><td><span class="chip chip-crit">noise &middot; malicious</span></td></tr>
+          <tr><td><code>45.198.224.169</code></td><td>AS215925 VPSVAULT.HOST</td><td>VulnCheck</td><td>21 Oct 14:15&ndash;15:52</td><td>Same UA and multipart POST against 2 hosts; then 13-byte bodyless POSTs with no UA against 3 hosts. 26 canaries.</td><td><span class="chip chip-crit">noise &middot; malicious</span></td></tr>
+          <tr><td><code>109.71.252.97</code></td><td>Datalix, DE</td><td>VulnCheck</td><td>21 Oct 15:55</td><td>PHP-info discovery sweep &mdash; <code>/phpinfo.php</code>, <code>/info.php</code>, <code>/php.php</code>, <code>/test.php</code> &mdash; then a randomised <code>/php2shell-probe-.php</code> and <code>.txt</code>.</td><td><span class="chip chip-crit">noise &middot; malicious</span></td></tr>
+          <tr><td><code>91.90.123.25</code></td><td>AS9009 M247, BE</td><td>VulnCheck</td><td>21 Oct 17:23</td><td><code>GET /vuln.php</code> (404), <code>GET /index.php</code>, <code>POST /</code> with UA <code>php2shell-verify/1.0</code>.</td><td><span class="chip chip-warn">noise &middot; suspicious</span></td></tr>
+          <tr><td><code>221.14.159.134</code></td><td>AS4837 China Unicom, Henan</td><td>VulnCheck</td><td>21 Oct 17:22&ndash;17:24</td><td><strong>The one actual exploitation attempt.</strong> Webshell planted via <code>PHP_SESSION_UPLOAD_PROGRESS</code>, then ten <code>GET /download.php?file=php://filter/&hellip;</code> read-backs &mdash; all 404. UA <code>Mozilla/5.0 (php2shell-poc)</code>.</td><td><span class="chip chip-mute">not observed</span></td></tr>
+          <tr><td><code>103.216.220.92</code></td><td>commercial anonymisation network</td><td>AWS MadPot</td><td><strong>17 Oct</strong> &mdash; pre-disclosure</td><td>Exploitation attempt four days before public disclosure. The most significant single indicator in the case.</td><td><span class="chip chip-mute">not observed</span></td></tr>
+          <tr><td><code>31.223.184.166</code><br><code>37.19.200.5</code><br><code>134.209.159.64</code><br><code>103.114.163.188</code><br><code>95.217.98.37</code></td><td>anonymisation / VPS</td><td>AWS MadPot</td><td>21 Oct 02:00&ndash;08:00</td><td>Post-embargo attempts with differing payloads and anonymisation choices &mdash; AWS reads this as &ldquo;multiple actors&rdquo;.</td><td><span class="chip chip-mute">not observed</span></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">The request-shape rules come from <code>break-the-build/php-uploadprogress-waf</code> (Suricata, ModSecurity, nginx njs; content-only, no exploit code). Treat them as a net for opportunistic use of the published tooling. Anyone who reads the source renames <code>t[]</code> and the User-Agent in seconds — which is why the host side carries the durable signal.</p>
+    <p>The split in the last column is the finding. <strong>GreyNoise's sensor corpus has the four scanners and neither of the two hosts that actually attempted exploitation.</strong> That is a coverage statement about GreyNoise, not a clearance for those addresses &mdash; the same discipline this brief applies elsewhere. Two of these addresses are the only ones that matter operationally, and no reputation instrument covers them.</p>
 
-    <h3>Artifact hashes — bundle as served 06:45 UTC</h3>
-    <p>Useful for detecting downloads or staging of this bundle. The outer tarball hash changes with each re-upload; the inner files have been stable across the builds we compared.</p>
+    <h3>Request and session artifacts</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Artifact</th><th>Value</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>User-Agents</td><td><code>php2shell-scan/109618</code>, <code>php2shell-scan/1.3 (eigen-oppervlak controle; CVE-2026-109618/109619)</code>, <code>php2shell-verify/1.0</code>, <code>Mozilla/5.0 (php2shell-poc)</code></td><td>Tool-specific and trivially rotated. The Dutch phrase means &ldquo;own-surface check&rdquo;, which suggests at least one of these scanners was an authorised self-assessment &mdash; <strong>do not treat the UA alone as hostile</strong>.</td></tr>
+          <tr><td>Session ID</td><td><code>xqsuvwz3n97wu8j3emz1axuo5y</code> &rarr; <code>sess_xqsuvwz3n97wu8j3emz1axuo5y</code></td><td>Durable: survives request death. Check <code>session.save_path</code> for that filename.</td></tr>
+          <tr><td>Multipart boundary</td><td><code>------p2s9rdme2st6guc9g0rafic</code></td><td>Random per run, but distinctive in logs.</td></tr>
+          <tr><td>Upload filenames</td><td><code>p2s.txt</code>, parts <code>a</code> and <code>b</code></td><td>Part <code>a</code> is the payload; <code>b</code> is 64 bytes.</td></tr>
+          <tr><td>Sweep paths</td><td><code>/index.php</code>, <code>/</code>, <code>/vuln.php</code>, <code>/phpinfo.php</code>, <code>/info.php</code>, <code>/php.php</code>, <code>/pi.php</code>, <code>/test.php</code>, <code>/i.php</code>, <code>/php2shell-probe-&lt;random&gt;.php</code></td><td>Reconnaissance grammar. Cheap to alert on as a <em>sequence</em>, noisy on any single hit.</td></tr>
+          <tr><td>Exploit read-back</td><td><code>GET /download.php?file=php://filter/&hellip;</code></td><td>Session-file exfiltration attempt; 10 per run in the observed case.</td></tr>
+          <tr><td>Success marker</td><td><code>PWNED::</code> in the response body</td><td>The webshell echoes it. A <code>PWNED::</code> in your logs is an executed webshell, not an attempt.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>File and content hashes &mdash; VulnCheck Canary</h3>
+    <p>SHA-256 of uploaded multipart parts. Useful for retro-hunting request bodies, not for endpoint scanning.</p>
     <div class="code">
       <button type="button" data-copy>Copy</button>
-      <pre><code>fc1ea7f905559c75bb9e48ebf477a9925d5df12acb7a0a5fa0be3e620675c724  bin/php_up_framework.py
-4e384bf3d62c5b153b0fd00896b0b7fc97a3fbc6ad0901c4354d54d90dfcbf3b  bin/poc_trigger.py
-dc672f10fb8489bf886be1f1d9c57e2cf4ba4074dc097a73f485dfd1b4116fec  bin/poc0_109618.py
-a919a09865ca4e947463da09cf6aca29b85ed4177152d761caa794609f7b08eb  bin/poc1_109619.py
-3232d5907c080162ee05aab73f77a3a934cfc22647773a7651a2f08a0fd46eb3  deltas/lsphp82-8.2.34-1-bookworm.zval.debug
-1b45b92df8b8802e3cad78a46dcc4043989497ce11d49f9f26f3d6c43371ad6d  deltas/lsphp82-8.2.34-1-jammy.zval.debug
-0ad6b96ca29ae2e19ec3cab8ac30cad8a6c3d6a6e04ff31fe148c0d74dddf8c1  deltas/lsphp82-8.2.34-1-noble.zval.debug
-72b2db97a4b55aae8327bb25683ebd083747e736035fcfff21240183bacce578  docs/DELTAS_LSphp.md
-58d0c4120a75fdf3cb09bcaf30636f9af4cb72adae5dd7f12d77e06de841df48  docs/RATING.md
-1c806af60510bf28146848cfc14f0af86ce98c339617295aba1d66e569f7046e  docs/README_FRAMEWORK.md
-86501720ed9bbcb211e54d8be8727605f59d977e5b0c8face3e723d2d3b7cd66  docs/REPORT_VALIDATION.md
-bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATION.md
-1917df05c735e2ebe3e5890790874d02b49bbec340b139bc6a03604bf14f811c  README.md</code></pre>
-      <div class="code-cap">SHA-256 · computed locally, files never executed</div>
+      <pre><code>150ae88f0999032e2a6113501d6082f54a3ed98d02427b21a96e773a27d7bf16  part "a", 10370 B  (both scanning sources)
+40caf199ca1ebe056a74427f8e9db06c66899e33ae09c0ec2769ec70bf6dd8e7  part "a",  8922 B  (45.198.224.169)
+27d926a6708d6769d97d065e7a5a860ab496eab272c03d1cebc55ec71b954fa2  part "b",    64 B  (both)
+1485e14e0f62bc94664eec341cabd275dad7d30b1d496c40ec340c9a0d9f0ba8  request body, 13 B (45.198.224.169)</code></pre>
+      <div class="code-cap">From VulnCheck&rsquo;s published Canary data; not re-derived here</div>
     </div>
-    <p class="note">No command-and-control address, domain or infrastructure is embedded in the bundle: the only URLs in it are a <code>https://host/x.php</code> placeholder and <code>127.0.0.1</code>. This tooling has no network footprint beyond the target itself.</p>
 
-    <h3>PoC status — what actually works</h3>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>PoC</th><th>Claim</th><th>Verified outcome</th></tr></thead>
-        <tbody>
-          <tr><td>jackalsyn bundle <code>poc0</code>/<code>poc1</code> (62,929 B / 67,975 B)</td><td>Heap UAF → <code>system()</code></td><td><strong>Does not work.</strong> Reaches both stores, HTTP 200, no ASAN report, forged handler <code>0x4141…</code> never invoked, worker survives. Tested on 8.4.4 and 8.2.34.</td></tr>
-          <tr><td>Session poisoning → <code>include()</code></td><td>RCE via session file</td><td><strong>Works</strong>, with <code>cleanup=0</code>; with stock <code>cleanup=1</code> it needs a multi-worker race. Requires the victim app to include an attacker-influenced path.</td></tr>
-          <tr><td>BG(serialize) two-request PoC</td><td><code>php_add_var_hash()</code> UAF</td><td>OOM precondition reproduced on 8.5.4-0ubuntu1.3 (<code>memory_limit=8M</code>). ASAN UAF / SIGSEGV <strong>not</strong> reproduced — <code>USE_ZEND_ALLOC=0</code> disables <code>memory_limit</code>, so the ASAN build never takes the fatal path.</td></tr>
-          <tr><td>19h chain</td><td>"uid=0(root) via HTTP"</td><td>Lab-only and self-labelled as such; the chain ends at an <code>include()</code> sink shipped in the demo app. Its own README now contradicts its own report on cleanup (see correction below).</td></tr>
-          <tr><td><a href="https://github.com/ikow/php2shell-poc">ikow</a> — <code>var_destroy</code> destructor reentry</td><td>ASAN heap-use-after-free at <code>var_unserializer.c:851</code>, escalated to <code>system()</code></td><td><strong>Mechanism confirmed in source; execution not reproduced here.</strong> The unlocked destructor call and the parser-state reuse branch are real (technical section above). The <code>/proc/self/mem</code> escalation is asserted, not shown. Needs an application <code>unserialize()</code> sink with classes allowed.</td></tr>
-          <tr><td><a href="https://github.com/0x4148/CVE-2026-109618-php2shell-lab">0x4148</a> Docker lab</td><td>UAF → <code>system()</code></td><td><strong>Reaches the path only.</strong> Its own success output is <code>Armed: YES</code> — both cached pointers written through, no sanitizer report, no command execution. It does not claim otherwise.</td></tr>
-          <tr><td><a href="https://github.com/eness/php2shell-CVE-2026-109618-CVE-2026-109619-PoC">eness</a> PoC</td><td>"Confirmed on 8.4.4 and 8.2.34"</td><td><strong>Code now published, 238★ — and it implements the retired Model A.</strong> <code>poc_109618.py</code> (7.4 KB) hardcodes a cached outer <code>zval*</code>, a 149-part reclaim and a per-build delta <code>0x43EF0</code>. Its README still says the PoC "will be published very soon", contradicting the file beside it.</td></tr>
-          <tr><td><a href="https://calif.io/research/php-uaf">calif.io / MADBugs</a> — <code>Serializable</code> reentrancy UAF</td><td>Missing <code>BG(serialize_lock)++</code> in <code>zend_user_unserialize()</code> → RCE</td><td><strong>Source confirmed; execution not reproduced here.</strong> Lock absence verified in <code>8.4</code> and <code>8.2</code>. Author reports 10/10 local on 8.5.5 and 3/3 remote at ~2,375 requests. No CVE assigned; strong remote precondition.</td></tr>
-          <tr><td><a href="https://github.com/9bie/php2shell-bypass-aslr-exp">9bie</a> <code>exploit.py</code></td><td>HTTP-only pre-auth RCE on 8.4.26 + mod_php</td><td><strong>Unverified, and the only public work aimed at the real mechanism.</strong> Grown to 21 MB of notes; its <code>php_session_initialize()</code> OOM with a 12 MB trailing field matches the vendor's account. Still needs <code>display_errors=1</code> for RCE — <code>display_errors=0</code> yields heap disclosure only.</td></tr>
-          <tr><td><a href="https://github.com/Gi1gamesh123/php-unserialize-uaf-rce">Gi1gamesh123</a> — var_hash UAF reproduction</td><td>ASAN UAF on 8.4.4; full RCE on Ubuntu php8.3.6</td><td><strong>Independent reproduction of the calif.io bug</strong>, with an ASan log and an adapted exploit. Same precondition: an application <code>unserialize()</code> entry with the right gadget shape.</td></tr>
-        </tbody>
-      </table>
+    <h3>The webshell they drop</h3>
+    <div class="code">
+      <button type="button" data-copy>Copy</button>
+      <pre><code>&lt;?php echo 'PWNED::'; system($_GET['c']); ?&gt;</code></pre>
+      <div class="code-cap">Planted through PHP_SESSION_UPLOAD_PROGRESS; executed on read-back</div>
     </div>
-    <div class="callout crit">
-      <span class="label">Every row above is now beside the point</span>
-      <p>None of these artefacts targets what PHP patched. Each was reverse-engineered from a leak, and the leak pointed at <code>session.upload_progress</code> — which the advisory identifies as a <em>consumer</em> of CVE-2026-109619, one of two issues. That is why two of the strongest-looking PoCs (the bundle and the 0x4148 lab) both plateau at "the vulnerable path was reached" and never crash: they are reaching a path whose actual fault requires an OOM bailout or a cross-request stale pointer that none of them constructs.</p>
-      <p>Two of them remain worth keeping in the lab, for different reasons. The session-poisoning chain is a real technique that predates these CVEs and still works against misconfigured applications. The calif.io <code>Serializable</code> UAF is a genuine, unpatchable-by-this-release defect with no CVE — the advisory does not address it, so it should be tracked separately.</p>
+    <p>Note what this is: not an exploit of the memory-corruption primitive at all, but the <strong>session-poisoning chain</strong> that was Models A and B in Appendix A. The attacker writes a PHP file into the session store and then tries to read it back through a <code>php://filter</code> path. In VulnCheck&rsquo;s observed run it failed &mdash; all ten reads 404 &mdash; because the target had no <code>include</code> sink to turn the file into execution.</p>
+
+    <div class="callout">
+      <span class="label">How to use these without generating your own incident</span>
+      <p><strong>Do not block the AWS addresses.</strong> Amazon is explicit that they are shared anonymisation infrastructure &ldquo;not exclusive to this threat activity&rdquo; and advises investigating observations rather than blocking. The same caution applies to <code>37.19.200.5</code> and <code>95.217.98.37</code>, both large commercial VPN egress.</p>
+      <p><strong>Prioritise two.</strong> <code>221.14.159.134</code> and <code>103.216.220.92</code> are the only addresses here recorded as <em>attempting exploitation</em> rather than scanning. Neither has a GreyNoise classification.</p>
+      <p><strong>Hunt the artifacts, not the addresses.</strong> A session file named <code>sess_xqsuvwz3n97wu8j3emz1axuo5y</code>, a <code>PWNED::</code> response, or a <code>/php2shell-probe-*.php</code> request in your logs is worth more than the IP list &mdash; addresses rotate, the tool&rsquo;s grammar does not.</p>
     </div>
   </section>
 
@@ -956,10 +970,26 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
 
   <section>
     <p class="eyebrow">TTPs</p>
-    <h2>No adversary TTPs are confirmed</h2>
-    <p>Nothing here has been observed against a real target. The useful split is between what the published exploit code demonstrably does and what vendors suggest defenders look for. The first is evidenced by code and captured artefacts; the second is generic incident-response guidance that happens to be useful for hunting. A third category, what an attacker might do after gaining execution, has no evidence behind it at all, so it is recorded separately below rather than mixed in.</p>
+    <h2>Observed TTPs &mdash; what attackers are actually doing</h2>
+    <p>This heading previously read &ldquo;No adversary TTPs are confirmed&rdquo;. That is no longer true: canary and honeypot operators captured real attack traffic from 17 October. The section now runs in three tiers, and the tier matters more than the technique: what was actually seen on a wire, what the published exploit code can do, and what is only hypothesis.</p>
 
-    <h3>Confirmed: behaviour implemented by the published exploit code</h3>
+    <h3>Tier 1 &mdash; observed against real hosts, 17&ndash;21 October</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Behaviour</th><th>Evidence</th><th>ATT&amp;CK</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Exploitation attempted four days before disclosure</strong></td><td>AWS MadPot, 17 Oct, from <code>103.216.220.92</code> on an anonymisation network. No explanation of how the actor had the details.</td><td class="num">T1190</td><td><span class="chip chip-ok">High</span> &mdash; single vendor, but a dated telemetry record</td></tr>
+          <tr><td>Mass scanning for PHP endpoints with tool-specific UAs, switching to browser UAs for the sweep</td><td>VulnCheck: 188 and 26 canaries reached; a 58-host <code>GET /</code> sweep rotating Chrome, Edge, IE11, Safari and Firefox strings</td><td class="num">T1595.002</td><td><span class="chip chip-ok">High</span></td></tr>
+          <tr><td>Target discovery through <code>phpinfo</code>, <code>info.php</code>, <code>test.php</code> and randomised probe files</td><td>VulnCheck, <code>109.71.252.97</code>: PHP-info sweep then <code>/php2shell-probe-&lt;random&gt;.php</code></td><td class="num">T1595</td><td><span class="chip chip-ok">High</span></td></tr>
+          <tr><td><strong>Webshell dropped through <code>PHP_SESSION_UPLOAD_PROGRESS</code>, then read back via <code>php://filter</code></strong></td><td>VulnCheck, <code>221.14.159.134</code>: shell written by multipart upload, ten <code>/download.php?file=php://filter/…</code> reads, all 404</td><td class="num">T1505.003 &middot; T1190</td><td><span class="chip chip-ok">High</span> &mdash; observed, and it failed</td></tr>
+          <tr><td>Commercial anonymisation and VPN egress throughout</td><td>AWS: addresses are shared anonymisation infrastructure &ldquo;not exclusive to this threat activity&rdquo;; MadPot saw differing anonymisation choices across attempts</td><td class="num">T1090</td><td><span class="chip chip-ok">High</span></td></tr>
+          <tr><td>Multiple distinct actors, not one campaign</td><td>AWS: differing payloads and anonymisation choices between 02:00 and 08:00 UTC indicate &ldquo;multiple actors&rdquo;</td><td>&mdash;</td><td><span class="chip chip-warn">Medium</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Read Tier 1 carefully: <strong>the only complete attack chain captured was the session-poisoning path, and it did not work</strong> &mdash; the read-back 404&rsquo;d because the target had no <code>include</code> sink. The memory-corruption exploits that actually work are demonstrated in labs, not yet in the canary data. That is consistent with VulnCheck&rsquo;s assessment that &ldquo;none [of the public PoCs] independently bypass ASLR on x86-64&rdquo;, that RCE was reproduced on ARM64 and on x86 without ASLR, and that ARM64 ASLR &ldquo;can be bruteforced relatively easily&rdquo;.</p>
+
+    <h3>Tier 2 &mdash; behaviour implemented by the published exploit code</h3>
     <p>Read from PoC source and the artefacts those authors captured. This is tool capability, not adversary behaviour. We did not execute either PoC, so "confirmed" means the code and the captured logs agree, not that we reproduced the chain.</p>
     <div class="scroll">
       <table>
@@ -984,7 +1014,7 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
       <table>
         <thead><tr><th>ATT&amp;CK</th><th>Earlier claim</th><th>Why it does not hold</th></tr></thead>
         <tbody>
-          <tr><td class="num">T1505.003</td><td>Web shell</td><td>No PoC installs a persistent component; the poisoned session file is ephemeral and depends on a cleanup setting</td></tr>
+          <tr><td class="num">T1505.003</td><td>Web shell <em>as a durable implant</em></td><td><strong>Upgraded to Tier 1 in part.</strong> A webshell <em>was</em> observed being planted on 21 October &mdash; but through the session file, with no persistence beyond it, and the read-back failed. What remains unconfirmed is a webshell surviving as a persistent component.</td></tr>
           <tr><td class="num">T1059.003</td><td>Windows command shell</td><td>No PoC or report tests Windows PHP; <code>php-cgi.exe</code> appears only in generic vendor advice</td></tr>
           <tr><td class="num">T1105</td><td>Ingress tool transfer</td><td>From "watch for curl/wget" hygiene guidance; no PoC performs it</td></tr>
           <tr><td class="num">T1053.003</td><td>Cron persistence</td><td>Generic post-compromise checklist; no link to this exploit</td></tr>
@@ -1280,7 +1310,9 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
           <tr><td>The bundle is being re-uploaded; no stable checksum</td><td><span class="chip chip-ok">High</span></td><td>Three hashes observed directly across two measurement windows</td></tr>
           <tr><td>The published heap-UAF PoC does not achieve execution</td><td><span class="chip chip-ok">High</span></td><td>Two independent laboratory reproductions agree, and the author's own ASAN run is negative</td></tr>
           <tr><td>Session poisoning reaches RCE only with an app <code>include()</code> sink and <code>cleanup=0</code></td><td><span class="chip chip-ok">High</span></td><td>Reproduced independently; it is a pre-existing technique, not a new mechanism</td></tr>
-          <tr><td>No network IOCs have been published</td><td><span class="chip chip-ok">High</span></td><td>Four feeds queried directly at 07:00 UTC, all zero — a statement about publication, not about attacks</td></tr>
+          <tr><td>No network IOCs exist</td><td><span class="chip chip-crit">Retracted</span></td><td>This brief asserted it from four feeds. VulnCheck and AWS both published host indicators on 21 October. The feeds were silent because they index infrastructure, not attacking hosts.</td></tr>
+          <tr><td>Exploitation attempted on 17 Oct, pre-disclosure</td><td><span class="chip chip-warn">Medium</span></td><td>One vendor's honeypot record with a date and an address; no corroborating sensor and no explanation of the actor's lead time</td></tr>
+          <tr><td>VulnCheck/AWS host indicators identify the attackers</td><td><span class="chip chip-warn">Medium</span></td><td>Four of the eleven are shared anonymisation or VPN egress that AWS explicitly says not to block; one is an apparent authorised self-scan</td></tr>
           <tr><td>Root cause of 109618 is OOM bailout corruption</td><td><span class="chip chip-ok">High</span></td><td>GHSA-w8hw-w9fx-j79w, and the 8.5.12 changelog entry "Avoid state corruption via bailout"</td></tr>
           <tr><td>Root cause of 109619 is stale worker-global state</td><td><span class="chip chip-ok">High</span></td><td>GHSA-6wmf-4rv5-p3rp; <code>session.upload_progress</code> named as a confirmed consumer, not the cause</td></tr>
           <tr><td>Which CVE is which issue</td><td><span class="chip chip-ok">Resolved</span></td><td>109618 = OOM corruption; 109619 = stale global state. Both advisories name their CVE explicitly.</td></tr>
@@ -1315,6 +1347,10 @@ bf0fd35d7e3bb27cb0c7deff64f707ea29a317cf17975d06cada644ca61f5cfe  docs/VALIDATIO
     <h2>Everything this brief rests on</h2>
     <ul class="sources">
       <li><span class="src-title"><a href="https://www.php.net/archive/2026.php#2026-10-21-5">PHP.net — Security advisory: Critical remote code execution vulnerabilities, update now</a></span><span class="src-meta"><strong>Primary · the advisory itself · 13:44 UTC 21 Oct · fixed versions, both CVEs, full stopgap guidance</strong></span></li>
+      <li><span class="src-title"><a href="https://www.vulncheck.com/blog/php2shell-vulnerabilities">VulnCheck &mdash; PHP2Shell vulnerabilities (Canary telemetry)</a></span><span class="src-meta">Vendor &middot; 21 Oct &middot; five attacking IPs with ASNs and timestamps, four user-agents, session and boundary artifacts, four SHA-256s, the webshell body, and the ASLR assessment</span></li>
+      <li><span class="src-title"><a href="https://aws.amazon.com/blogs/security/amazon-threat-intelligence-identifies-php2shell-exploitation-prior-to-public-disclosure-in-madpot/">AWS &mdash; Amazon Threat Intelligence identifies PHP2Shell exploitation prior to public disclosure in MadPot</a></span><span class="src-meta">Vendor &middot; 21 Oct &middot; six IPs including a 17 Oct pre-disclosure attempt; explicit warning that they are shared anonymisation infrastructure and should be investigated, not blocked</span></li>
+      <li><span class="src-title"><a href="https://securitylabs.datadoghq.com/articles/php2shell-critical-vulnerabilities-in-php/">Datadog Security Labs &mdash; PHP2Shell detection and analysis</a></span><span class="src-meta">Vendor research &middot; step-by-step OOM exploit chain, exact log strings, process-tree signals</span></li>
+      <li><span class="src-title"><a href="https://corelight.com/blog/php2shell-detection-before-disclosure">Corelight &mdash; Zeek and Suricata detections</a></span><span class="src-meta">Vendor &middot; nine Zeek notice types (crash sequences, multipart header flood, serialized-integer collisions); rules at <code>github.com/corelight/php2shell-detect</code></span></li>
       <li><span class="src-title"><a href="https://www.wiz.io/blog/php2shell-php-rce">Wiz Research — PHP2Shell: AI uncovers critical RCE vulnerabilities</a></span><span class="src-meta">Vendor research &middot; the four-bug breakdown, discovery dates, coordination list, behavioural detection signals. The most detailed public technical account.</span></li>
       <li><span class="src-title"><a href="https://www.openwall.com/lists/oss-security/2026/10/21/16">oss-security &mdash; CVE-2026-109619 thread</a></span><span class="src-meta">Primary &middot; PHP's announcement text including "demonstrated against Apache mod_php and PHP-FPM"; the incomplete-fix claim and Canonical's reply are in posts 16, 17 and 23</span></li>
       <li><span class="src-title"><a href="https://www.securityweek.com/php2shell-patches-land-as-first-exploitation-attempts-hit-sensors/">SecurityWeek &mdash; Patches land as first exploitation attempts hit sensors</a></span><span class="src-meta">Reporting &middot; 21 Oct 12:50 ET &middot; Hadrian "exploited in the wild at scale", Cloudflare, Patchstack, Vega, watchTowr</span></li>
