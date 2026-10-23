@@ -403,7 +403,7 @@
     <div class="meta-row">
       <span class="chip chip-crit">Critical · exploited</span>
       <span class="chip chip-mute">TLP:CLEAR</span>
-      <span>Compiled 21 Oct 03:55 · revised through 22 Oct; PoC population review added</span>
+      <span>Compiled 21 Oct 03:55 · revised 23 Oct: Sophos correction, Potassium payload, per-IOC review</span>
       <span>Patched 13:44 UTC · exploited in the wild at scale</span>
     </div>
     <h1>PHP2Shell: <span class="nw">CVE-2026-109618</span> &amp; <span class="nw">CVE-2026-109619</span></h1>
@@ -413,7 +413,7 @@
   <div class="bluf">
     <h2>Bottom line</h2>
     <ol>
-      <li><strong>It is being exploited, at scale, right now.</strong> Hadrian: <em>&ldquo;We are now seeing php2shell exploited in the wild at scale&rdquo;</em>, and &ldquo;<em>most of the attacks we observe abuse PHP&rsquo;s session upload-progress path</em>&rdquo;. Cloudflare, Patchstack, Vega and watchTowr all reported attempts within hours of the patch. <strong>No successful in-the-wild compromise has been confirmed</strong> &mdash; watchTowr: &ldquo;nobody has been successful to date&rdquo;. Exploitation at scale and confirmed compromise are different claims; only the first is evidenced.</li>
+      <li><strong>It is being exploited, at scale, right now.</strong> Hadrian: <em>&ldquo;We are now seeing php2shell exploited in the wild at scale&rdquo;</em>, and &ldquo;<em>most of the attacks we observe abuse PHP&rsquo;s session upload-progress path</em>&rdquo;. Cloudflare, Patchstack, Vega and watchTowr all reported attempts within hours of the patch. <strong>No successful in-the-wild compromise has been confirmed</strong> &mdash; watchTowr: &ldquo;nobody has been successful to date&rdquo;. Exploitation at scale and confirmed compromise are different claims; only the first is evidenced. <strong>On 22 October Sophos made the one compromise claim in this case and retracted it five hours later</strong> &mdash; see the 23 October update above.</li>
       <li><strong>FPM is in scope, and the advisory text understated it.</strong> The GitHub advisory left PHP-FPM at &ldquo;considered susceptible by source analysis&rdquo;. The PHP security team&rsquo;s own <a href="https://www.openwall.com/lists/oss-security/2026/10/21/16">oss-security post</a> is stronger: <em>&ldquo;Unauthenticated RCE has been demonstrated against Apache mod_php and PHP-FPM.&rdquo;</em> If your estate is FPM-only, you are not in a second tier.</li>
       <li><strong>The mechanism is now properly documented &mdash; four bugs under two CVEs.</strong> <a href="https://www.wiz.io/blog/php2shell-php-rce">Wiz Research</a> describes 109618 as an upload-progress unserializer use-after-free plus a process-memory disclosure, and 109619 as a fatal-error backtrace use-after-free plus an OPcache type confusion. Every one is a <em>state-survives-a-bailout</em> bug: memory is freed out from under a global pointer, and the next request on the same worker uses it.</li>
       <li><strong>The session path the ecosystem built rules for is the one attackers are actually using</strong> &mdash; not because the leaked PoC was right about the root cause, but because <code>session.upload_progress</code> is the cheapest way to reach it. That partly reprieves the WAF rules deployed on 21 October, but only for 109619. Nothing in that rule set touches 109618.</li>
@@ -423,6 +423,64 @@
       <li><strong>Not in CISA KEV</strong> &mdash; catalog <code>2026.10.21</code>, 1,754 entries, both CVEs absent, re-checked 02:00 UTC. MITRE and NVD both carry the records.</li>
     </ol>
   </div>
+
+  <section>
+    <p class="eyebrow">Update &middot; 23 October</p>
+    <h2>A compromise claim withdrawn, and a botnet payload identified</h2>
+    <p>Two things moved. A sensor operator retracted the only first-party compromise claim in this case, and the same disclosure named what the exploitation attempts are actually delivering. Neither changes the patching advice; both change the threat picture.</p>
+
+    <div class="callout crit">
+      <span class="label">Correction &mdash; Sophos withdrew its compromise claim five hours after making it</span>
+      <p><strong>22 Oct 16:18 UTC.</strong> Sophos reported <em>&ldquo;observed successful exploitation of PHP2Shell in customer environments&rdquo;</em>, describing multiple attempts and <em>&ldquo;one successful exploitation&rdquo;</em>, with a payload written to <code>/tmp/nfs</code> and executed as <code>./nfs php</code>.</p>
+      <p><strong>22 Oct 21:21 UTC.</strong> Retracted: <em>&ldquo;we are correcting that assessment.&rdquo;</em> The corrected position is that telemetry shows <em>&ldquo;scanning and a small number of failed exploitation attempts&rdquo;</em>, the payload <em>&ldquo;was not delivered&rdquo;</em> because Sophos countermeasures stopped the attempt, and <strong>&ldquo;there is no evidence of a successful compromise due to these vulnerabilities.&rdquo;</strong></p>
+      <p>This matters more than a normal correction. It was the only compromise claim with a first party behind it in the entire case, and it survived five hours. The &ldquo;no confirmed compromise&rdquo; line elsewhere in this brief is now a <em>positive</em> finding &mdash; a claim raised and withdrawn &mdash; rather than only an absence of reporting.</p>
+    </div>
+
+    <h3>What was being delivered &mdash; Potassium</h3>
+    <p>The payload is <strong>Potassium</strong>, a Mirai-derived botnet described as an updated and significantly expanded version of a variant seen in early 2026, with downloader and network-disruption functionality. It resolves a hard-coded encrypted C2, opens a TCP connection, checks for an HTTP <code>200</code>, verifies the response begins with the ELF magic bytes <code>7F 45 4C 46</code>, and then retrieves a Linux follow-on binary. Its resolver falls back to <code>8.8.8.8</code>, <code>1.1.1.1</code> and <code>1.0.0.1</code>.</p>
+    <p>That reframes the motive. The exploitation observed in this case is <strong>botnet recruitment</strong>, not espionage or extortion: a compromised PHP host becomes a DDoS node. It is also the first concrete answer to &ldquo;what would an attacker do with this?&rdquo; &mdash; and it is opportunistic commodity crime, which matches the absence of any actor attribution.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Indicator</th><th>Type</th><th>Role</th><th>Corroboration</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>134.199.154.64</code></td><td>IP</td><td>Potassium C2 &mdash; the address the payload connects to</td><td>1 VT engine; 1 AbuseIPDB report / 30d</td></tr>
+          <tr><td><code>117.55.202.115</code></td><td>IP</td><td>Second Potassium C2</td><td>VT 2 engines; GTI 25 SUSPICIOUS</td></tr>
+          <tr><td><code>92.118.112.100</code></td><td>IP</td><td>Payload host &mdash; <code>hxxp://92.118.112.100/nfs</code></td><td>VT 5 engines; GTI 29</td></tr>
+          <tr><td><code>hackattackkaboom.botlesscucks.st</code></td><td>Domain</td><td>Malware staging server</td><td>VT 14/48</td></tr>
+          <tr><td><code>hik.gettingheadfromduckysmom.st</code></td><td>Domain</td><td>Potassium infrastructure embedded in the payload</td><td>VT 9/42</td></tr>
+          <tr><td><code>thunder.godofthunder.st</code></td><td>Domain</td><td>Contacted during sandbox analysis</td><td>VT 4/40, categorised <strong>command and control</strong></td></tr>
+          <tr><td>SHA-256 <code>0c5486f0&hellip;d1486</code></td><td>Hash</td><td>Potassium payload served as <code>/nfs</code></td><td>Sophos, 22 Oct</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The multipart boundary <code>B7kQpoc618</code> and the UA <code>php2shell-scan/109618</code> are the request-side artefacts. That UA is already in the network-indicator table below &mdash; the source address Sophos names, <code>45.198.224.169</code>, is the same host this brief graded <strong>BLOCK</strong> from VulnCheck telemetry. Two independent sensor operators now describe the same host doing the same thing.</p>
+
+    <div class="callout info">
+      <span class="label">Near-duplicate trap &mdash; two addresses that look like one</span>
+      <p>Sophos&rsquo;s C2 <code>134.199.154.64</code> and this brief&rsquo;s <code>134.209.159.64</code> differ in three digits, share DigitalOcean, and are geolocated to different cities (Sydney and Bengaluru). One is a botnet C2; the other is a post-embargo attempt through open proxy infrastructure. <strong>They are not the same host and must not be merged.</strong> A one-digit error here turns a C2 block into a false one, or the reverse.</p>
+    </div>
+
+    <h3>A working exploit exists privately</h3>
+    <p>VulnCheck reports holding a private, weaponised exploit for CVE-2026-109618: x86-64, ASLR enabled, <code>display_errors=Off</code>, against PHP 8.4.26. We have not verified that ourselves, and it does not contradict the public picture &mdash; it sharpens it. &ldquo;None of the public PoCs bypasses ASLR&rdquo; is a statement about <em>public</em> code, and it should not be read as &ldquo;this is not exploitable.&rdquo;</p>
+    <p>Sophos, for its part, is candid that building one is hard: its own Adversary Group has attempted it, <em>&ldquo;which is proving challenging even with AI support&rdquo;</em>, and it observes that <em>&ldquo;the lack of successful exploits in the wild suggests threat actors are also struggling.&rdquo;</em> It also cautions that researcher claims may be lab-only. <strong>Urgent patching remains the recommendation.</strong></p>
+
+    <h3>Status, checked 23 October</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Question</th><th>Answer</th><th>Basis</th></tr></thead>
+        <tbody>
+          <tr><td>In CISA KEV?</td><td><strong>No</strong></td><td>Live catalog <code>2026.10.21</code>, 1,754 entries, both CVEs absent &mdash; re-checked 23 Oct</td></tr>
+          <tr><td>New PHP release since the fix?</td><td><strong>No</strong></td><td>The 8&nbsp;line still shows 21 Oct 2026 as latest; 8.5.12 remains the current fixed build</td></tr>
+          <tr><td>AWS position</td><td>Broad attempts</td><td>&ldquo;PHP2Shell is now seeing broad exploitation attempts in the wild&rdquo;; still no success claim, and AWS advises <em>investigate</em> its published addresses, not block them</td></tr>
+          <tr><td>Confirmed compromise</td><td><strong>None</strong></td><td>Now a positive finding: the one claim made was retracted within five hours</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">One tension worth recording: AWS explicitly recommends investigating its six addresses rather than blocking them, while this brief grades four of the eleven as BLOCK. The disagreement is about collateral, not about whether the hosts behaved maliciously. We block individual addresses, never the netblock, and run provider engagement in parallel.</p>
+  </section>
 
   <section>
     <p class="eyebrow">Vendor advisory</p>
